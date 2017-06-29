@@ -1,0 +1,25 @@
+{
+	"name": "vue-async-everything",
+	"version": "0.1.0",
+	"description": "Smart asynchronous data and computed properties for vue components.",
+	"main": "./src/index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [
+		"vue",
+		"component",
+		"components",
+		"async",
+		"data",
+		"computed",
+		"property",
+		"debounce"
+	],
+	"author": {
+		"name": "Blaine Hansen",
+		"email" : "faichenshing@gmail.com",
+		"url" : "http://blainehansen.co/"
+	},
+	"license": "MIT"
+}
