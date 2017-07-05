@@ -1,11 +1,10 @@
-# vue-async-everything
+# vue-async-properties
 
 **Smart asynchronous data and computed properties for vue components.**
 
 
 ## **This package is incomplete, and still under active development.**
 
----
 
 This package makes dealing with asynchronous data directly in Vue components completely simple and flexible.
 
@@ -20,8 +19,8 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 Vue.use(VueAxios, axios)
 
-import VueAsyncEverything from 'vue-async-everything'
-Vue.use(VueAsyncEverything, {
+import VueAsyncProperties from 'vue-async-properties'
+Vue.use(VueAsyncProperties, {
 	// this could set the default url on the axios instance as well
 	apiRoot: 'http://example.com/v1/',
 	debounce: 2000,
@@ -33,7 +32,7 @@ Now `asyncData` and `asyncComputed` options are available on your components:
 ```js
 // in vue component
 new Vue({
-	name: 'editarticle',
+	name: 'editArticle',
 	props: ['articleId'],
 	asyncData: {
 		// this will use the articleId prop
@@ -125,7 +124,7 @@ This options object is very flexible, and can change a large number of things.
 The default naming strategy for the meta properties like "loading" and "pending" is `propName$metaName`. You may prefer a different naming strategy, and you can pass a function for a different one in the global config.
 
 ```js
-Vue.use(VueAsyncEverything, {
+Vue.use(VueAsyncProperties, {
 	// for "article" and "loading"
 	// "article__Loading"
 	metaNameFunction: (propName, metaName) => `${propName}__${capitalize(metaName)}`,
@@ -152,7 +151,7 @@ It's always a good idea to debounce asynchronous functions that rely on user inp
 
 ```js
 // global configuration
-Vue.use(VueAsyncEverything, {
+Vue.use(VueAsyncProperties, {
 	// if the value is just a number, it's used as the delay time
 	debounce: 500,
 
@@ -224,7 +223,7 @@ new Vue({
 You can fully specify a url if you're using a different one than the `apiRoot`. Any url that has `http://` or `https://` in it will be used as the full url.
 
 ```js
-Vue.use(VueAsyncEverything, {
+Vue.use(VueAsyncProperties, {
 	apiRoot: 'http://example.com/v1/'
 })
 
@@ -249,9 +248,9 @@ new Vue({
 
 
 ```js
-import VueAsyncEverything from 'vue-async-everything'
+import VueAsyncProperties from 'vue-async-properties'
 
-Vue.use(VueAsyncEverything, {
+Vue.use(VueAsyncProperties, {
 	apiRoot: 'http://example.com/v1/',
 	debounce: 500, // if the passed in value is a number and not an object, it is used as the wait value
 	debounce: {
