@@ -1,6 +1,6 @@
 {
 	"name": "vue-async-everything",
-	"version": "0.1.0",
+	"version": "0.0.1",
 	"description": "Smart asynchronous data and computed properties for vue components.",
 	"main": "./src/index.js",
 	"scripts": {
@@ -21,5 +21,9 @@
 		"email" : "faichenshing@gmail.com",
 		"url" : "http://blainehansen.co/"
 	},
-	"license": "MIT"
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/blainehansen/vue-async-everything"
+	}
 }
