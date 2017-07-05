@@ -1,6 +1,6 @@
 # vue-async-properties
 
-**Smart asynchronous data and computed properties for vue components.**
+> Smart asynchronous data and computed properties for vue components.
 
 
 ## **This package is incomplete, and still under active development.**
@@ -27,12 +27,12 @@ Vue.use(VueAsyncProperties, {
 })
 ```
 
+
 Now `asyncData` and `asyncComputed` options are available on your components:
 
 ```js
-// in vue component
+// in component
 new Vue({
-	name: 'editArticle',
 	props: ['articleId'],
 	asyncData: {
 		// this will use the articleId prop
@@ -41,20 +41,17 @@ new Vue({
 		article: '/articles/:articleId'
 	},
 	asyncComputed: {
-		// is this legal or a good idea? should we even allow the pure string system in computed?
-		articleContentFeedback: '/articles/check?c=:article.content',
-		articleContentFeedback() {
-			// if this function returns a string, it will be used as the endpoint
-			return `/articles/check?c=${this.article.content}`
-			// whenever article.content changes, a request (debounced by 2000 miliseconds) will be made
-		}
+		// whenever article.content changes,
+		// a request will be made
+		// (debounced by 2000 miliseconds)
+		articleContentFeedback: '/articles/check?c=:article.content'
 	}
 })
 ```
 
 ```jade
 // in template
-#article
+#article(:class="{ 'loading': article$loading }")
 	input(v-model="article.title")
 
 	textarea(v-model="article.content")
@@ -64,9 +61,6 @@ new Vue({
 	span.content-feedback.is-error(v-else-if="articleContentFeedback$error") there was an error while asking the server
 
 	span.content-feedback(v-if="articleContentFeedback") {{articleContentFeedback}}
-
-	// does a POST request to /articles/:articleId
-	input(type="submit", @click="article$push") Save your Article
 ```
 
 As you can see, everything's handled for you.
@@ -74,52 +68,178 @@ As you can see, everything's handled for you.
 
 ## Difference between `asyncData` and `asyncComputed`?
 
-`asyncData`: 
+`asyncData`: only runs once automatically, during the component's `onCreated` hook.
 
-- only runs once automatically, during the components `onCreated` hook
-- can only rely on component props, not data
-- must be manually pulled or pushed, with `propName$pull` and `propName$push`
-
-`asyncComputed`:
-
-- runs automatically every time any of the things it depends on changes (with debounce)
-- can rely on any component data, or even computed properties (even other async properties!)
+`asyncComputed`: runs automatically every time any of the things it depends on changes (with debounce).
 
 
-## `asyncData`
+## General Syntax
+
+When you create a property on `asyncData` or `asyncComputed`, you can pass in the following:
+
+- A string. Any segment of the url prefixed by a `:` will be replaced with that property's value on the vue instance (so whatever `this.propertyName` is).
+
+```js
+new Vue({
+	// if this is 123
+	props: ['articleId'],
+	asyncData: {
+		// this will be resolved to '/articles/123'
+		article: '/articles/:articleId'
+	}
+})
+
+```
+
+- A function that returns a string. That string *won't* have colon prefixed segments replaced. Filling in the right values is up to you if you use a function.
 
 ```js
 new Vue({
 	props: ['articleId'],
 	asyncData: {
-		// The pure string version.
-		// this will be combined with the `apiRoot`
-		article: '/articles/:articleId',
-
-		article: 
+		article() {
+			return `/articles/${this.articleId}`
+		}
 	}
 })
+```
+
+- A function that returns a promise, or a normal value if you don't want a request to be made.
+
+```js
+new Vue({
+	props: ['articleId'],
+	asyncData: {
+		article() {
+			if (this.articleId) {
+				// make an unusual request
+				return this.$http.post('/articles/', {data: { id: this.articleId }})
+			}
+			else {
+				// any value (other than a string) that doesn't have a `.then` function
+				// will be directly set as the property value without a request being made
+				return { title: "Let's create a new article!" }
+			}
+		}
+	}
+})
+```
+
+- An options object.
+
+The most important option is the `url`.
+
+```js
+new Vue({
+	props: ['articleId'],
+	asyncData: {
+		article: {
+			url: '/articles/:articleId'
+		}
+	}
+})
+```
+
+Read on to find out all the possible options.
 
 
+## Defaults and Undefined/Null Colon Prefixed Values
 
+If you refer to a property that returns `undefined` in a colon prefixed value, an error will be thrown.
+
+```js
+new Vue({
+	props: ['articleId'],
+	asyncData: {
+		// ERROR: undefined colon-prefixed value in url
+		article: '/articles/:fakeId'
+	}
+})
+```
+
+If you refer to a property that is `null`, no request will be performed, and the value will be set to either `null` or the default if you defined one.
+
+
+```js
+new Vue({
+	// no articleId is passed, so this is null
+	props: ['articleId'],
+	asyncData: {
+		article: {
+			url: '/articles/:articleId',
+			// article will be set as whatever articleObject is
+			default: articleObject
+		}
+	}
+})
 ```
 
 
+## Defaults and Merging
+
+The normal behavior when a request is performed and returns a non-empty value is to ignore the default and set the value as the result of the request. But you might want the result to have any empty fields that the default does have filled in by it. To do this, set the `merge` option.
+
+```js
+new Vue({
+	props: ['articleId'],
+	asyncData: {
+		article: {
+			url: '/articles/:articleId',
+			default: articleObject
+
+			// any fields that the default has that the result doesn't have
+			// will be copied over to the result
+			merge: true,
+
+			// you can supply a custom merging function with the signature:
+			// (defaultValue, resultValue, key, defaultObject, resultObject)
+			// https://lodash.com/docs/#mergeWith
+			merge: myMergeFunc,
+		}
+	}
+})
+```
+
+## Meta Properties
+
+Properties to indicate the status of your requests, and methods to manage them, are automatically added to the component.
+
+- `article$loading`: if a request currently in progress
+- `article$error`: the error of the last request
+- `article$default`: the default value you passed, if any
+
+**For `asyncData`**
+
+- `article$refresh()`: perform the request again
+
+**For `asyncComputed`**
+
+- `searchResults$pending`: if a request is *queued*, but not yet sent because of debouncing
+- `searchResults$cancel()`: cancel any debounced requests
+- `searchResults$now()`: immediately perform the latest debounced request
+
+**Component-Wide**
+
+- `$asyncLoading`
+- `$asyncPending`
+- `$asyncError`
+
+If you've turned on event emitting for the entire appication, some properties are also added to indicate status across the entire application, and for the children of the component.
+
+**At the `$root` component level**
+
+- `$rootAsyncLoading`
+- `$rootAsyncPending`
+- `$rootAsyncError`
+
+**For the children of the current component**
+
+- `$childrenAsyncLoading`
+- `$childrenAsyncPending`
+- `$childrenAsyncError`
 
 
-
-When you create an async property on `asyncData` or `asyncComputed`, you can pass in the following:
-
-- a string (which will be treated as the endpoint for both pushes and pulls)
-- a function that returns a string (which will be used as the push and pull endpoint)
-- a function that returns a promise (which will be the pull promise. this makes pushing impossible, and `propName$push` won't be added to your component)
-- an options object
-
-This options object is very flexible, and can change a large number of things.
-
-
-
-## Different naming for Meta Properties
+### Different naming for Meta Properties
 
 The default naming strategy for the meta properties like "loading" and "pending" is `propName$metaName`. You may prefer a different naming strategy, and you can pass a function for a different one in the global config.
 
@@ -130,8 +250,6 @@ Vue.use(VueAsyncProperties, {
 	metaNameFunction: (propName, metaName) => `${propName}__${capitalize(metaName)}`,
 
 	// or ...
-	// whatever you want!
-
 	// "$loading_article"
 	metaNameFunction: (propName, metaName) => '$' + metaName + '_' + propName,
 
@@ -141,10 +259,6 @@ Vue.use(VueAsyncProperties, {
 ```
 
 
-## Defaults and Merging
-
-
-
 ## Debouncing
 
 It's always a good idea to debounce asynchronous functions that rely on user input. You can configure this both globally and at the property level.
@@ -152,12 +266,12 @@ It's always a good idea to debounce asynchronous functions that rely on user inp
 ```js
 // global configuration
 Vue.use(VueAsyncProperties, {
-	// if the value is just a number, it's used as the delay time
+	// if the value is just a number, it's used as the wait time
 	debounce: 500,
 
 	// you can pass an object for more complex situations
 	debounce: {
-		delay: 500,
+		wait: 500,
 
 		// these are the same options used in lodash debounce
 		// https://lodash.com/docs/#debounce
@@ -182,12 +296,10 @@ new Vue({
 })
 ```
 
-Debouncing can also applied to `asyncData` to ensure against double clicks of push or pull buttons or whatever, and leading is automatically set to true.
-
 
 ## Lazy Requests
 
-If you don't want the requests to go out immediately when the component is created for the first time, but instead to wait for some user interaction, set the lazy option to true at the property level.
+If you don't want the requests to go out immediately when the component is created for the first time, but instead to wait for some user interaction or whatever, set the lazy option to true at the property level.
 
 ```js
 new Vue({
@@ -195,7 +307,7 @@ new Vue({
 	asyncData: {
 		article: {
 			endpoint: '/articles/:articleId',
-			// won't be triggered until article$pull or article$push is called
+			// won't be triggered until article$refresh is called
 			lazy: true
 		}
 	},
@@ -215,7 +327,30 @@ new Vue({
 
 
 ## http setup (axios and apiroot)
-## transforms and validators
+
+
+## Transformation Functions
+
+Pass a `transform` function if you have some processing you'd always like to do with request results. **Note:** this function will only be called if a request is actually made.
+
+```js
+new Vue({
+	props: ['articleId'],
+	asyncData: {
+		article: {
+			url: '/articles/:articleId',
+			transform(result) {
+				// this is the default,
+				// which simply returns the data value from result
+				return result.data
+			}
+		}
+	}
+})
+
+```
+
+
 ## error handlers
 
 ## Full Urls
@@ -280,32 +415,7 @@ Vue.use(VueAsyncProperties, {
 
 events could be emitted for things like loading and dones and errors
 
-```jade
-p(v-if="article$loading") // if a request is literally in flight
-p(v-if="article$pending") // if a request is *queued*, but not yet sent
-p(v-if="article$error") // the error of the last request
-p(v-if="article$default") // the default value you passed, if any
 
-a(@click="article$now") // immediately flush the invocations
-a(@click="article$cancel") // cancel all delayed invocations
-
-p(v-if="$asyncLoading") // component wide
-p(v-if="$asyncPending") // component wide
-p(v-if="$asyncError") // component wide
-
-p(v-if="$globalAsyncLoading") // global (refers to $root)
-p(v-if="$globalAsyncPending") // global (refers to $root)
-p(v-if="$globalAsyncError") // global (refers to $root)
-
-p(v-if="$childrenAsyncLoading")
-p(v-if="$childrenAsyncPending")
-p(v-if="$childrenAsyncError")
-
-
-// only for asyncData
-a(@click="article$pull") // perform the request again
-a(@click="article$push") // perform the set request
-```
 
 
 
@@ -343,21 +453,7 @@ new Vue({
 			}
 
 
-			// assumes article verb
-			set: '/article/:articleId'
-			set: {
-				endpoint: '/article/:articleId',
-				verb: 'PATCH',
-				// by default this will simply set the thing to be whatever you passed in,
-				// but this option will perform the get you've provided right after
-				getAfter: true,
-				// and this one will set the data of the response as the new value
-				replaceWithData: true,
-			}
-			set() {
-				// return a promise
-				return this.$http.article(customPathFunction(), customDataFunction())
-			},
+			
 
 			validate(payload) {
 				// a function that ensures the outgoing thing is correct, possibly changes things
@@ -371,7 +467,7 @@ new Vue({
 			error, // local error handler, could be called *in addition* to global one
 
 			default: articleObject,
-			// we give them a $pull method
+			// we give them a $get method
 			lazy: true,
 			// by default your thing will be replaced completely by the results of the request
 			merge: true // if both the result and the default are objects, this option can basically say to use the default merge strategy (lodash) to replace any nil values in the default with whatever exists in the result
@@ -390,7 +486,7 @@ new Vue({
 			// the request is always made immediately on creation of the component otherwise
 			debounce: 750,
 			// this can allow them to not make the request when the component is first initialized
-			wait: true
+			lazy: true
 
 			// wipes out the value while a request is being made
 			clearAtLoading: true
