@@ -10,6 +10,12 @@ This package makes dealing with asynchronous data directly in Vue components com
 
 The basic useage looks like this.
 
+
+## quick and dirty versions
+
+only takes function that returns a thing or a promise
+
+
 ```js
 // main.js
 import Vue from 'vue'
@@ -19,14 +25,38 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 Vue.use(VueAxios, axios)
 
+Vue.axios.defaults.baseURL = 'http://example.com/v1/'
+Vue.axios.defaults.headers.common['Authorization'] = AUTH_TOKEN
+
+// since in this version the library never actually makes requests on its own
 import VueAsyncProperties from 'vue-async-properties'
 Vue.use(VueAsyncProperties, {
-	// this could set the default url on the axios instance as well
-	apiRoot: 'http://example.com/v1/',
-	debounce: 2000,
+	// httpMethod: Vue.axios.get,
+	debounce: 1000
 })
 ```
 
+
+
+
+```js
+// main.js
+import Vue from 'vue'
+
+// simplest if you use axios integrated with vue
+import axios from 'axios'
+import VueAxios from 'vue-axios'
+Vue.use(VueAxios, axios)
+
+Vue.axios.defaults.baseURL = 'http://example.com/v1/'
+Vue.axios.defaults.headers.common['Authorization'] = AUTH_TOKEN
+
+import VueAsyncProperties from 'vue-async-properties'
+Vue.use(VueAsyncProperties, {
+	httpMethod: Vue.axios.get,
+	debounce: 1000
+})
+```
 
 Now `asyncData` and `asyncComputed` options are available on your components:
 
@@ -43,7 +73,7 @@ new Vue({
 	asyncComputed: {
 		// whenever article.content changes,
 		// a request will be made
-		// (debounced by 2000 miliseconds)
+		// (debounced by 1000 miliseconds)
 		articleContentFeedback: '/articles/check?c=:article.content'
 	}
 })
@@ -77,7 +107,7 @@ As you can see, everything's handled for you.
 
 When you create a property on `asyncData` or `asyncComputed`, you can pass in the following:
 
-- A string. Any segment of the url prefixed by a `:` will be replaced with that property's value on the vue instance (so whatever `this.propertyName` is).
+- A string. Any segment of the url prefixed by a `:` will be replaced with that property's value on the vue instance (so whatever `this.whatever` is).
 
 ```js
 new Vue({
@@ -91,7 +121,7 @@ new Vue({
 
 ```
 
-- A function that returns a string. That string *won't* have colon prefixed segments replaced. Filling in the right values is up to you if you use a function.
+- A function that returns a string. That string *won't* have colon prefixed segments replaced. Filling in the right values is up to you.
 
 ```js
 new Vue({
@@ -104,7 +134,7 @@ new Vue({
 })
 ```
 
-- A function that returns a promise, or a normal value if you don't want a request to be made.
+- A function that returns a promise, or a normal value if you don't want a request to be made. If you're not using vue-axios, this is probably what you'll have to do all of the time.
 
 ```js
 new Vue({
@@ -127,14 +157,25 @@ new Vue({
 
 - An options object.
 
-The most important option is the `url`.
+The most important option is either the `endpoint` or a `request` function.
 
 ```js
 new Vue({
 	props: ['articleId'],
 	asyncData: {
 		article: {
-			url: '/articles/:articleId'
+			// endpoint can be a string
+			endpoint: '/articles/:articleId',
+
+			// or a function that returns a string.
+			endpoint() {
+				return `/articles/${this.articleId}`
+			},
+
+			// request must return a promise or a value (which can be a string!)
+			request() {
+				return this.axios.get(`/articles/${this.articleId}`)
+			}
 		}
 	}
 })
@@ -151,7 +192,7 @@ If you refer to a property that returns `undefined` in a colon prefixed value, a
 new Vue({
 	props: ['articleId'],
 	asyncData: {
-		// ERROR: undefined colon-prefixed value in url
+		// ERROR: undefined colon-prefixed value in endpoint
 		article: '/articles/:fakeId'
 	}
 })
@@ -166,7 +207,7 @@ new Vue({
 	props: ['articleId'],
 	asyncData: {
 		article: {
-			url: '/articles/:articleId',
+			endpoint: '/articles/:articleId',
 			// article will be set as whatever articleObject is
 			default: articleObject
 		}
@@ -177,14 +218,14 @@ new Vue({
 
 ## Defaults and Merging
 
-The normal behavior when a request is performed and returns a non-empty value is to ignore the default and set the value as the result of the request. But you might want the result to have any empty fields that the default does have filled in by it. To do this, set the `merge` option.
+The normal behavior when a request is performed and returns a non-empty value is to ignore the default and set the value as the result of the request. But you might want the result to have its empty fields filled in by those values on the default. To do this, set the `merge` option.
 
 ```js
 new Vue({
 	props: ['articleId'],
 	asyncData: {
 		article: {
-			url: '/articles/:articleId',
+			endpoint: '/articles/:articleId',
 			default: articleObject
 
 			// any fields that the default has that the result doesn't have
@@ -204,19 +245,19 @@ new Vue({
 
 Properties to indicate the status of your requests, and methods to manage them, are automatically added to the component.
 
-- `article$loading`: if a request currently in progress
-- `article$error`: the error of the last request
-- `article$default`: the default value you passed, if any
+- `prop$loading`: if a request currently in progress
+- `prop$error`: the error of the last request
+- `prop$default`: the default value you passed, if any
 
 **For `asyncData`**
 
-- `article$refresh()`: perform the request again
+- `prop$refresh()`: perform the request again
 
 **For `asyncComputed`**
 
-- `searchResults$pending`: if a request is *queued*, but not yet sent because of debouncing
-- `searchResults$cancel()`: cancel any debounced requests
-- `searchResults$now()`: immediately perform the latest debounced request
+- `prop$pending`: if a request is *queued*, but not yet sent because of debouncing
+- `prop$cancel()`: cancel any debounced requests
+- `prop$now()`: immediately perform the latest debounced request
 
 **Component-Wide**
 
@@ -269,6 +310,7 @@ Vue.use(VueAsyncProperties, {
 	// if the value is just a number, it's used as the wait time
 	debounce: 500,
 
+	// or ...
 	// you can pass an object for more complex situations
 	debounce: {
 		wait: 500,
@@ -288,9 +330,12 @@ new Vue({
 	},
 	asyncComputed: {
 		searchResults: {
-			get: '/search/:searchQuery',
+			endpoint: '/search/:searchQuery',
 			// this will be 1000 instead of the default globally configured 500
-			debounce: 1000
+			debounce: {
+				wait: 1000,
+				maxWait: 3000
+			}
 		}
 	}
 })
@@ -299,16 +344,16 @@ new Vue({
 
 ## Lazy Requests
 
-If you don't want the requests to go out immediately when the component is created for the first time, but instead to wait for some user interaction or whatever, set the lazy option to true at the property level.
+If you don't want the requests to go out immediately when the component is created for the first time, but instead to wait for a model change or a `prop$refresh` call, set the lazy option to true at the property level.
 
 ```js
 new Vue({
 	props: ['articleId'],
 	asyncData: {
 		article: {
-			endpoint: '/articles/:articleId',
-			// won't be triggered until article$refresh is called
 			lazy: true
+			// won't be triggered until article$refresh is called
+			endpoint: '/articles/:articleId',
 		}
 	},
 
@@ -317,16 +362,13 @@ new Vue({
 	},
 	asyncComputed: {
 		searchResults: {
-			endpoint: '/search/:searchQuery',
-			// won't be triggered until searchQuery changes
 			lazy: true
+			// won't be triggered until searchQuery changes
+			endpoint: '/search/:searchQuery',
 		}
 	}
 })
 ```
-
-
-## http setup (axios and apiroot)
 
 
 ## Transformation Functions
@@ -338,7 +380,7 @@ new Vue({
 	props: ['articleId'],
 	asyncData: {
 		article: {
-			url: '/articles/:articleId',
+			endpoint: '/articles/:articleId',
 			transform(result) {
 				// this is the default,
 				// which simply returns the data value from result
@@ -347,32 +389,66 @@ new Vue({
 		}
 	}
 })
-
 ```
 
 
-## error handlers
+## Error Handling
 
-## Full Urls
-
-You can fully specify a url if you're using a different one than the `apiRoot`. Any url that has `http://` or `https://` in it will be used as the full url.
+You can set up error handling pipelines, either globally (maybe you have some sort of notification tray or alerts), or at the property level.
 
 ```js
 Vue.use(VueAsyncProperties, {
-	apiRoot: 'http://example.com/v1/'
+	errorHandler(error) {
+		Notification.error({ title: "error", message: error.message })
+	}
 })
 
 new Vue({
 	props: ['articleId'],
-	// this will go out to http://randomsocial.com/articles/:articleId and ignore the example.com url
+	asyncData: {
+		article: {
+			endpoint: '/articles/:articleId',
+
+			// this flag causes this local errorHandler to be the only one called
+			// so the global handler WON'T be called
+			errorHandlerTakeover: true,
+			errorHandler(error) {
+				this.doErrorStuff(error)
+			}
+		}
+	}
+})
+```
+
+
+## Full Urls
+
+You can fully specify a endpoint if you're using a different one than the `baseURL`. Any endpoint that has `http://` or `https://` in it will be used as the full endpoint.
+
+```js
+Vue.use(VueAsyncProperties, {
+	baseURL: 'http://example.com/v1/'
+})
+
+new Vue({
+	props: ['articleId'],
+	// this will go out to http://randomsocial.com/articles/:articleId
+	// and ignore the example.com endpoint
 	asyncData: {
 		article: 'http://randomsocial.com/articles/:articleId'
 	}
 })
 ```
 
+## Events
 
-
+```js
+Vue.use(VueAsyncProperties, {
+	errorHandler, // global error handler
+	emitEvents: true, // if you want to have all async components emit all events
+	globalFlags: true // default 
+})
+```
 
 
 
@@ -386,7 +462,7 @@ new Vue({
 import VueAsyncProperties from 'vue-async-properties'
 
 Vue.use(VueAsyncProperties, {
-	apiRoot: 'http://example.com/v1/',
+	baseURL: 'http://example.com/v1/',
 	debounce: 500, // if the passed in value is a number and not an object, it is used as the wait value
 	debounce: {
 		delay: 500,
@@ -397,7 +473,7 @@ Vue.use(VueAsyncProperties, {
 	// the plugin will automatically try this.$http and this.axios
 	http: thingLikeAxios,
 	http: {
-		get: randomLibrary.getResource
+		endpoint: randomLibrary.getResource
 		// etc for article, put, patch, delete
 	},
 	errorHandler, // global error handler
@@ -434,10 +510,10 @@ new Vue({
 		article() { return `/article/:articleId/${filterString}` }
 
 		article: {
-			// if there's a protocol (http), the apiRoot isn't used
-			get: 'http://example.com/v2/article/',
-			get: '/article/',
-			get: {
+			// if there's a protocol (http), the baseURL isn't used
+			url: 'http://example.com/v2/article/',
+			url: '/article/',
+			url: {
 				endpoint: '/article/',
 				verb: 'article'
 			},

@@ -18,12 +18,15 @@
 	],
 	"author": {
 		"name": "Blaine Hansen",
-		"email" : "faichenshing@gmail.com",
-		"url" : "http://blainehansen.co/"
+		"email": "faichenshing@gmail.com",
+		"url": "http://blainehansen.co/"
 	},
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/blainehansen/vue-async-properties"
+	},
+	"devDependencies": {
+		"lodash": "^4.17.4"
 	}
 }
