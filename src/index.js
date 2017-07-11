@@ -1,6 +1,10 @@
-import AsyncData from './async-data.js'
-// import AsyncComputed from './async-computed.js'
+import AsyncDataMixin from './async-data.js'
+import AsyncComputedMixin from './async-computed.js'
 
-// let AsyncProperties = { AsyncData, AsyncComputed }
+const AsyncPropertiesPlugin = {}
+AsyncPropertiesPlugin.install = function(Vue, options) {
+	Vue.mixin(AsyncDataMixin)
+	Vue.mixin(AsyncComputedMixin)
+}
 
-export default AsyncData
+export default AsyncPropertiesPlugin
