@@ -1,47 +1,88 @@
 import { each, debounce } from 'lodash'
-import { resolverForGivenFunction, dataObjBuilder, metaCancel, metaNow, metaPending, metaLoading, metaError, metaDefault } from './core.js'
+import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
+import { globalDefaults, computedDefaults } from './defaults.js'
 
+export default function AsyncComputedMixinBuilder(options) {
 
-const AsyncComputedMixin = {
-	
+	const globalOptions = globalDefaults(options)
+	const metaNameFunction = globalOptions.metaNameFunction
+
+	const metaCancel = metaFunctionBuilder('cancel', metaNameFunction)
+	const metaNow = metaFunctionBuilder('now', metaNameFunction)
+	const metaPending = metaFunctionBuilder('pending', metaNameFunction)
+	const metaLoading = metaFunctionBuilder('loading', metaNameFunction)
+	const metaError = metaFunctionBuilder('error', metaNameFunction)
+	const metaDefault = metaFunctionBuilder('default', metaNameFunction)
+	const metaDebounce = metaFunctionBuilder('debounce', metaNameFunction)
+
+	const metas = { metaCancel, metaNow, metaPending, metaLoading, metaError, metaDefault, metaDebounce }
+
+	const computedGlobalDefaults = computedDefaults(options)
+
+	return {
+
 	beforeCreate() {
 		let properties = this.$options.asyncComputed
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
 		each(properties, (prop, propName) => {
-			// get the actual method that needs to be called
-			let givenFunction = prop.get
-			
-			// create a debounced version of it
-			let debouncedFunction = debounce(resolverForGivenFunction(givenFunction), 750)
 
-			// set up the watcher on it
-			let watch = prop.watch
-			this.$watch(watch, function() {
-				this[metaPending(propName)] = true
+			const opt = computedDefaults(prop, computedGlobalDefaults)
 
-				debouncedFunction()
-			}, { deep: true, immediate: !prop.lazy })
+			console.log(opt.debounce)
+			const debouncedFunction = debounce(
+				resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error),
+				opt.debounce.wait, opt.debounce.options
+			)
+
+			this[metaDebounce(propName)] = debouncedFunction
 
 			// inject the $cancel and $now
 			methods[metaCancel(propName)] = function() {
+				this[metaPending(propName)] = false
 				debouncedFunction.cancel()
 			}
 
 			methods[metaNow(propName)] = function() {
 				debouncedFunction.flush()
 			}
+		})
+
+	},
+
+	created() {
+		const properties = this.$options.asyncComputed
+
+		each(properties, (prop, propName) => {
+			const opt = computedDefaults(prop, computedGlobalDefaults)
+
+			// create a debounced version of it
+			// const debouncedFunction = this[metaDebounce(propName)].bind(this)
+			const debouncedFunction = this[metaDebounce(propName)]
+
+			let hasRun = false
+			const eager = opt.eager
+			this.$watch(opt.watch, function() {
+				if (eager && !hasRun) {
+					hasRun = true
+					debouncedFunction.call(this)
+					debouncedFunction.flush()
+				}
+				else {
+					this[metaPending(propName)] = true
+					debouncedFunction.call(this)
+				}
+
+			}, { deep: true, immediate: eager })
 
 		})
 
 	},
 
 	data() {
-		return dataObjBuilder.call(this, false)
+		return dataObjBuilder.call(this, metas, false)
 	}
 
-	// maybe have a thing that tears down the watchers?
+	}
 }
-
-export default AsyncComputedMixin

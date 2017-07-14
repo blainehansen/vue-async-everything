@@ -1,37 +1,44 @@
-const metaNameFunction = (propName, metaName) => `${propName}$${metaName}`
+import { each, isNil } from 'lodash'
 
-const exportObject = {
-	metaRefresh: (propName) => metaNameFunction(propName, 'refresh'),
 
-	metaLoading: (propName) => metaNameFunction(propName, 'loading'),
-	metaError: (propName) => metaNameFunction(propName, 'error'),
-	metaDefault: (propName) => metaNameFunction(propName, 'default'),
-
-	metaPending: (propName) => metaNameFunction(propName, 'pending'),
-	metaCancel: (propName) => metaNameFunction(propName, 'cancel'),
-	metaNow: (propName) => metaNameFunction(propName, 'now'),
+export function metaFunctionBuilder(metaName, metaFunction) {
+	return (propName) => metaFunction(propName, metaName)
 }
 
-exportObject.resolverForGivenFunction = function(givenFunction) {
+
+export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler) {
+
+	const assignFinalValue = function(result) {
+		// TODO this needs to account for merging
+
+		if (!isNil(result)) this[propName] = result
+		else this[propName] = defaultValue
+
+	}.bind(this)
 
 	return function() {
-		let givenResult = givenFunction()
+		let givenResult = givenFunction.call(this)
 
-		if (typeof givenResult.then === 'function') {
+		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
 			this[metaLoading(propName)] = true
+			if (metaPending) {
+				this[metaPending(propName)] = false
+			}
 			this[metaError(propName)] = null
 			
 			// place a then on the promise
 			givenResult
 			.then((result) => {
-				// TODO this[propName] = transformResult(result)
-				this[propName] = result
+				assignFinalValue(transformFunction(result))
 			})
 			.catch((error) => {
 				// TODO check if they want it cleared on error
 				this[propName] = null
-				// TODO call custom error handlers
 				this[metaError(propName)] = error
+
+				errorHandler(error)
+				// this will trigger a save of default
+				assignFinalValue(null)
 			})
 			.then(() => {
 				this[metaLoading(propName)] = false
@@ -40,13 +47,13 @@ exportObject.resolverForGivenFunction = function(givenFunction) {
 		}
 		else {
 			this[metaError(propName)] = null
-			this[propName] = givenResult
+			assignFinalValue(givenResult)
 		}
 	}
 
 }
 
-exportObject.dataObjBuilder = function(forData = true) {
+export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefault }, forData = true) {
 	let properties
 	if (forData) {
 		properties = this.$options.asyncData
@@ -58,9 +65,8 @@ exportObject.dataObjBuilder = function(forData = true) {
 	let dataObj = {}
 	each(properties, (prop, propName) => {
 		// the property itself
-		// this needs to account for merging
-		// dataObj[propName] = prop.default || null
-		dataObj[propName] = null
+		const defaultValue = prop.default || null
+		dataObj[propName] = defaultValue
 
 		if (!forData) {
 			// pending
@@ -77,6 +83,3 @@ exportObject.dataObjBuilder = function(forData = true) {
 
 	return dataObj
 }
-
-
-export default exportObject
