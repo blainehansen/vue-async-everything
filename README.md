@@ -34,7 +34,7 @@ Vue.use(VueAsyncProperties)
 Now `asyncData` and `asyncComputed` options are available on your components. What's the difference between the two?
 
 - `asyncData` only runs once automatically, during the component's `onCreated` hook.
-- `asyncComputed` runs automatically every time any of the things it depends on changes, with a default debounce of 1000 milliseconds.
+- `asyncComputed` runs automatically every time any of the things it depends on changes, with a default debounce of `1000` milliseconds.
 
 
 ## `asyncData`
@@ -68,7 +68,7 @@ button(@click="article$refresh") Refresh the Article
 
 #article(v-else) There was an error while loading the article!
 	| {{article$error.message}}
-	```
+```
 
 
 ## `asyncComputed`
