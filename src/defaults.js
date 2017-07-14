@@ -48,9 +48,12 @@ export function computedDefaults(options, bigOptions = {}) {
 
 	if (typeof options.debounce === 'number') {
 		options.debounce = {
-			wait: options.debounce
+			wait: options.debounce,
+			options: {}
 		}
 	}
+	else options.debounce.options = pick(options.debounce, 'leading', 'trailing', 'maxWait')
+
 	if (options.transform === null) options.transform = (result) => result
 
 	return defaultsDeep(options, bigOptions, commonLocalDefaultObject, computedLocalDefaultObject)
