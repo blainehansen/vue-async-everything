@@ -8,46 +8,63 @@ export function metaFunctionBuilder(metaName, metaFunction) {
 
 export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler) {
 
-	const assignFinalValue = function(result) {
+	const assignValue = (result) => {
 		// TODO this needs to account for merging
 
 		if (!isNil(result)) this[propName] = result
 		else this[propName] = defaultValue
+	}
 
-	}.bind(this)
+	if (metaPending) {
+		const pendingName = metaPending(propName)
+		const assignPending = (val) => {
+			this[pendingName] = val
+		}
+	}
+	else {
+		const assignPending = (val) => {}
+	}
 
-	return function() {
+	const loadingName = metaLoading(propName)
+	const assignLoading = (val) => {
+		this[loadingName] = val
+	}
+
+	const errorName = metaError(propName)
+	const assignError = (val) => {
+		this[errorName] = val
+	}
+
+	return () => {
 		let givenResult = givenFunction.call(this)
 
 		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
-			this[metaLoading(propName)] = true
-			if (metaPending) {
-				this[metaPending(propName)] = false
-			}
-			this[metaError(propName)] = null
+			assignLoading(true)
+			assignPending(false)
+			assignError(null)
 			
 			// place a then on the promise
 			givenResult
 			.then((result) => {
-				assignFinalValue(transformFunction(result))
+				assignValue(transformFunction(result))
 			})
 			.catch((error) => {
 				// TODO check if they want it cleared on error
 				this[propName] = null
-				this[metaError(propName)] = error
-
+				assignError(error)
 				errorHandler(error)
+
 				// this will trigger a save of default
-				assignFinalValue(null)
+				assignValue(null)
 			})
 			.then(() => {
-				this[metaLoading(propName)] = false
+				assignLoading(false)
 			})
 
 		}
 		else {
-			this[metaError(propName)] = null
-			assignFinalValue(givenResult)
+			assignError(null)
+			assignValue(givenResult)
 		}
 	}
 

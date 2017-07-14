@@ -1,21 +1,128 @@
-# vue-async-properties
 
-> Smart asynchronous data and computed properties for vue components.
-
-
-## **This package is incomplete, and still under active development.**
+## Planned Features for the Future
 
 
-This package makes dealing with asynchronous data directly in Vue components completely simple and flexible.
+**Component-Wide**
 
-The basic useage looks like this.
+- `$asyncLoading`
+- `$asyncPending`
+- `$asyncError`
 
 
-## quick and dirty versions
+However, since an `asyncData` property has a `$refresh` method, it could be useful to have *leading edge* debouncing on that method, to prevent a user from accidentally sending multiple refresh requests in a short time. Use the `debounceData` param for that.
 
-only takes function that returns a thing or a promise
+```js
+Vue.use(VueAsyncProperties, {
+	debounceData: 250,
 
-eager for computed, lazy for data
+	// you can of course have full complex control
+	debounceData: {
+		wait: 250,
+
+		leading: true, // default
+		trailing: false, // default
+		maxWait: null // default
+	}
+})
+```
+
+
+## Defaults and Merging
+
+You can provide a default to both `asyncData` and `asyncComputed`, which will be set as the initial value at creation, and used instead of a request result if it's `null` or `undefined`.
+
+```js
+new Vue({
+	// if articleId is passed as 123
+	props: ['articleId'],
+	asyncData: {
+		article: {
+			// and if that id doesn't exist and returns null...
+			get() { /* ... */ },
+			// this will be used instead
+			default: {
+				title: "Default Title",
+				content: "Default Content"
+			}
+		}
+	}
+})
+```
+
+The normal behavior when a request is performed and returns a non-empty value is to ignore the default and set the value as the result of the request. But you might want the result to have its empty fields filled in by those values on the default. To do this, set the `merge` option.
+
+```js
+new Vue({
+	asyncData: {
+		article: {
+			get() { /* ... */ },
+			default: articleObject
+
+			// any fields the default has that the result doesn't
+			// will be copied over to the result
+			merge: true,
+
+			// you can supply a custom merging function with the signature:
+			// (defaultValue, resultValue, key, defaultObject, resultObject)
+			// https://lodash.com/docs/#mergeWith
+			merge: myMergeFunc,
+		}
+	}
+})
+```
+
+When both the default value and the result are arrays, the default merge strategy will be to combine the two arrays.
+
+```js
+new Vue({
+	asyncData: {
+		numbers: {
+			default: [1, 2]
+			// let's say this returns [3, 4, 5]
+			get() { /* ... */ },
+			merge: true,
+			// after the request, the numbers property will contain [1, 2, 3, 4, 5]
+		}
+	}
+})
+```
+
+
+
+## `asyncMethods`
+
+You may want to have methods that do something asynchronously, and you'd like the same conveniences as asyncData and asyncComputed. 
+
+```js
+new Vue({
+	asyncMethods: {
+		checkStatus() {
+			return this.axios.post('http://api.external.com/status/', {
+				data: { username: this.firstName }
+			})
+		}
+	}
+})
+```
+
+```jade
+#status-dashboard(:class="{'loading': checkStatus$loading}")
+	button(v-if="!checkStatus$loading", @click="checkStatus") Check Status
+
+	p(v-if="checkStatus$results") {{checkStatus$results}}
+	p(v-if="checkStatus$error") There was an error.
+```
+
+
+<!-- ### Combining Transforms
+
+By default, if you specify a transform at one level, it will be the only one called, and the ones higher than it in the precedence chain won't be. If however you want to have the transforms of higher levels applied -->
+
+
+<!-- ## Clear on Request??? -->
+
+
+
 
 
 here's how it could work in the future:
@@ -307,14 +414,14 @@ The default naming strategy for the meta properties like "loading" and "pending"
 Vue.use(VueAsyncProperties, {
 	// for "article" and "loading"
 	// "article__Loading"
-	metaNameFunction: (propName, metaName) => `${propName}__${capitalize(metaName)}`,
+	meta: (propName, metaName) => `${propName}__${capitalize(metaName)}`,
 
 	// or ...
 	// "$loading_article"
-	metaNameFunction: (propName, metaName) => '$' + metaName + '_' + propName,
+	meta: (propName, metaName) => '$' + metaName + '_' + propName,
 
 	// the default is:
-	metaNameFunction: (propName, metaName) => `${propName}$${metaName}`,
+	meta: (propName, metaName) => `${propName}$${metaName}`,
 })
 ```
 
@@ -497,7 +604,7 @@ Vue.use(VueAsyncProperties, {
 	},
 	errorHandler, // global error handler
 	emitEvents: true, // if you want to have all async components emit all events
-	metaNameFunction(propName, metaName) {
+	meta(propName, metaName) {
 		// the meta properties can be named whatever you want, 
 		return `${propName}__${capitalize(metaName)}`
 	},

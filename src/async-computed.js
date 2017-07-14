@@ -5,15 +5,15 @@ import { globalDefaults, computedDefaults } from './defaults.js'
 export default function AsyncComputedMixinBuilder(options) {
 
 	const globalOptions = globalDefaults(options)
-	const metaNameFunction = globalOptions.metaNameFunction
+	const meta = globalOptions.meta
 
-	const metaCancel = metaFunctionBuilder('cancel', metaNameFunction)
-	const metaNow = metaFunctionBuilder('now', metaNameFunction)
-	const metaPending = metaFunctionBuilder('pending', metaNameFunction)
-	const metaLoading = metaFunctionBuilder('loading', metaNameFunction)
-	const metaError = metaFunctionBuilder('error', metaNameFunction)
-	const metaDefault = metaFunctionBuilder('default', metaNameFunction)
-	const metaDebounce = metaFunctionBuilder('debounce', metaNameFunction)
+	const metaCancel = metaFunctionBuilder('cancel', meta)
+	const metaNow = metaFunctionBuilder('now', meta)
+	const metaPending = metaFunctionBuilder('pending', meta)
+	const metaLoading = metaFunctionBuilder('loading', meta)
+	const metaError = metaFunctionBuilder('error', meta)
+	const metaDefault = metaFunctionBuilder('default', meta)
+	const metaDebounce = metaFunctionBuilder('debounce', meta)
 
 	const metas = { metaCancel, metaNow, metaPending, metaLoading, metaError, metaDefault, metaDebounce }
 
@@ -39,8 +39,9 @@ export default function AsyncComputedMixinBuilder(options) {
 			this[metaDebounce(propName)] = debouncedFunction
 
 			// inject the $cancel and $now
+			const pendingName = metaPending(propName)
 			methods[metaCancel(propName)] = function() {
-				this[metaPending(propName)] = false
+				this[pendingName] = false
 				debouncedFunction.cancel()
 			}
 
@@ -57,21 +58,21 @@ export default function AsyncComputedMixinBuilder(options) {
 		each(properties, (prop, propName) => {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
-			// create a debounced version of it
-			// const debouncedFunction = this[metaDebounce(propName)].bind(this)
+			// get the debounced version of it
 			const debouncedFunction = this[metaDebounce(propName)]
+			// const debouncedFunction = this[metaDebounce(propName)].bind(this)
 
 			let hasRun = false
 			const eager = opt.eager
 			this.$watch(opt.watch, function() {
 				if (eager && !hasRun) {
 					hasRun = true
-					debouncedFunction.call(this)
+					debouncedFunction()
 					debouncedFunction.flush()
 				}
 				else {
 					this[metaPending(propName)] = true
-					debouncedFunction.call(this)
+					debouncedFunction()
 				}
 
 			}, { deep: true, immediate: eager })

@@ -1,6 +1,5 @@
 import AsyncDataMixinBuilder from './async-data.js'
 import AsyncComputedMixinBuilder from './async-computed.js'
-// import { defaultGlobalOptions, defaultDataOptions, defaultComputedOptions } from './core.js'
 
 const AsyncPropertiesPlugin = {
 	install(Vue, options = {}) {

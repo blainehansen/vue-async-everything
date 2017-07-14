@@ -1,20 +1,13 @@
 {
 	"name": "vue-async-properties",
-	"version": "0.0.1",
-	"description": "Smart asynchronous data and computed properties for vue components.",
+	"version": "0.0.2",
+	"description": "Vue Component Plugin for asynchronous data and computed properties.",
 	"main": "./src/index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [
-		"vue",
-		"component",
-		"components",
-		"async",
-		"data",
-		"computed",
-		"property",
-		"debounce"
+		"vue", "component", "plugin", "components", "async", "asynchronous", "data", "computed", "property", "properties", "reactive", "promise", "promises", "debounce"
 	],
 	"author": {
 		"name": "Blaine Hansen",
@@ -26,7 +19,7 @@
 		"type": "git",
 		"url": "https://github.com/blainehansen/vue-async-properties"
 	},
-	"devDependencies": {
+	"dependencies": {
 		"lodash": "^4.17.4"
 	}
 }

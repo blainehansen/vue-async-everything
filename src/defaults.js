@@ -1,16 +1,16 @@
 import { get, pick, defaultsDeep, cloneDeep } from 'lodash'
 
 const globalDefaultObject = {
-	metaNameFunction: (propName, metaName) => `${propName}$${metaName}`,
+	meta: (propName, metaName) => `${propName}$${metaName}`,
 }
 
 const commonLocalDefaultObject = {
 	// merge: false
 	// mergeFunction: () => {}, // ?
 	transform: (result) => result.data,
-	// transformJoin: false,
+	// transformCombine: false,
 	error: (e) => { console.log('default'); console.error(e) },
-	// errorTakeover: false,
+	// errorCombine: false,
 }
 
 const dataLocalDefaultObject = {
