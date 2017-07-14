@@ -348,3 +348,7 @@ Vue.use(VueAsyncProperties, {
   }
 })
 ```
+
+## Contributions
+
+If you'd like to contribute, just fork the project and then make a pull request!
