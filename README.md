@@ -4,15 +4,19 @@
 
 **Proudly sponsored by Marketdial**
 
-<!-- <a href="http://marketdial.com">
-<img src="https://camo.githubusercontent.com/b40bcf1054679344852f11878dbbae173c74a4f3/68747470733a2f2f63646e2e7261776769742e636f6d2f626c61696e6568616e73656e2f7675652d6173796e632d70726f706572746965732f6d61737465722f6d61726b65746469616c2d6c6f676f2e737667" alt="MarketDial logo" title="MarketDial" data-canonical-src="https://cdn.rawgit.com/blainehansen/vue-async-properties/master/marketdial-logo.svg" style="width:100%; max-width:100%;">
-</a> -->
+<p>
+<a href="http://marketdial.com">
+<img src="https://cdn.rawgit.com/blainehansen/vue-async-properties/master/marketdial-logo.svg" alt="MarketDial logo" title="MarketDial" width="35%">
+</a>
+</p>
 
 
 [![MarketDial logo][2]][1]
 
   [1]: http://marketdial.com
   [2]: https://cdn.rawgit.com/blainehansen/vue-async-properties/master/marketdial-logo.svg (MarketDial)
+
+---
 
 Has convenient features for:
 
