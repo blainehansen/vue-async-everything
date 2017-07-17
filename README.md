@@ -7,7 +7,7 @@
 [![MarketDial logo][2]][1]
 
   [1]: http://marketdial.com
-  [2]: https://raw.githubusercontent.com/blainehansen/vue-async-properties/marketdial-logo.svg (MarketDial)
+  [2]: https://raw.githubusercontent.com/blainehansen/vue-async-properties/1bf925d347a06e3a847213029f1dbaac5995f1f3/marketdial-logo.svg (MarketDial)
 
 <!-- ![MarketDial logo](marketdial-logo.svg) -->
 
