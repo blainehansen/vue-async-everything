@@ -10,12 +10,6 @@
 </a>
 </p>
 
-
-[![MarketDial logo][2]][1]
-
-  [1]: http://marketdial.com
-  [2]: https://cdn.rawgit.com/blainehansen/vue-async-properties/master/marketdial-logo.svg (MarketDial)
-
 ---
 
 Has convenient features for:
