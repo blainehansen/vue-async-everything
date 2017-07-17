@@ -9,7 +9,7 @@ const commonLocalDefaultObject = {
 	// mergeFunction: () => {}, // ?
 	transform: (result) => result.data,
 	// transformCombine: false,
-	error: (e) => { console.log('default'); console.error(e) },
+	error: (e) => { console.error(e) },
 	// errorCombine: false,
 }
 

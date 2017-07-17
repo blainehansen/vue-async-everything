@@ -15,14 +15,15 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 		else this[propName] = defaultValue
 	}
 
+	let assignPending
 	if (metaPending) {
 		const pendingName = metaPending(propName)
-		const assignPending = (val) => {
+		assignPending = (val) => {
 			this[pendingName] = val
 		}
 	}
 	else {
-		const assignPending = (val) => {}
+		assignPending = (val) => {}
 	}
 
 	const loadingName = metaLoading(propName)

@@ -21,7 +21,7 @@ Has convenient features for:
 - request data transformation
 - error handling
 
-## Version `0.1.1`
+## Version `0.1.X`
 
 The basic useage looks like this.
 
