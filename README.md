@@ -2,6 +2,15 @@
 
 > Vue Component Plugin for asynchronous data and computed properties.
 
+**Proudly sponsored by Marketdial**
+
+[![MarketDial logo][2]][1]
+
+  [1]: http://marketdial.com
+  [2]: marketdial-logo.svg (MarketDial)
+
+<!-- ![MarketDial logo](marketdial-logo.svg) -->
+
 Has convenient features for:
 
 - loading, pending, and error flags
