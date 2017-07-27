@@ -6,6 +6,8 @@
 	"module": "./src/index.js",
 	"scripts": {
 		"build": "webpack -p",
+		"version": "npm run build && git add -A lib",
+		"postversion": "git push && git push --tags",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [
