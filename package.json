@@ -2,12 +2,27 @@
 	"name": "vue-async-properties",
 	"version": "0.1.2",
 	"description": "Vue Component Plugin for asynchronous data and computed properties.",
-	"main": "./src/index.js",
+	"main": "./lib/index.js",
+	"module": "./src/index.js",
 	"scripts": {
+		"build": "webpack -p",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [
-		"vue", "component", "plugin", "components", "async", "asynchronous", "data", "computed", "property", "properties", "reactive", "promise", "promises", "debounce"
+		"vue",
+		"component",
+		"plugin",
+		"components",
+		"async",
+		"asynchronous",
+		"data",
+		"computed",
+		"property",
+		"properties",
+		"reactive",
+		"promise",
+		"promises",
+		"debounce"
 	],
 	"author": {
 		"name": "Blaine Hansen",
@@ -21,5 +36,13 @@
 	},
 	"dependencies": {
 		"lodash": "^4.17.4"
+	},
+	"devDependencies": {
+		"babel-core": "^6.25.0",
+		"babel-loader": "^7.1.1",
+		"babel-plugin-add-module-exports": "^0.2.1",
+		"babel-preset-es2015": "^6.24.1",
+		"babel-preset-stage-0": "^6.24.1",
+		"webpack": "^3.4.1"
 	}
 }
