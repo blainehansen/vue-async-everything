@@ -54,16 +54,16 @@ You can simply pass a function that returns a promise.
 ```js
 // in component
 new Vue({
-  props: ['articleId'],
-  asyncData: {
-    // when the component is created
-    // a request will be made to
-    // http://api.example.com/v1/articles/articleId
-    // (or whatever base url you've configured)
-    article() {
-      return this.axios.get(`/articles/${this.articleId}`)
-    }
-  },
+	props: ['articleId'],
+	asyncData: {
+		// when the component is created
+		// a request will be made to
+		// http://api.example.com/v1/articles/articleId
+		// (or whatever base url you've configured)
+		article() {
+			return this.axios.get(`/articles/${this.articleId}`)
+		}
+	},
 })
 ```
 
@@ -72,12 +72,12 @@ new Vue({
 button(@click="article$refresh") Refresh the Article
 
 #article(v-if="!article$error", :class="{ 'loading': article$loading }")
-  h1 {{article.title}}
+	h1 {{article.title}}
 
-  .content {{article.content}}
+	.content {{article.content}}
 
 #article(v-else) There was an error while loading the article!
-  | {{article$error.message}}
+	| {{article$error.message}}
 ```
 
 
@@ -90,30 +90,30 @@ Why is this necessary? Why not just pass a function that's reactively watched? W
 ```js
 // in component
 new Vue({
-  data: {
-    query: ''
-  },
-  asyncComputed: {
-    // whenever query changes,
-    // a request will be made to
-    // http://api.example.com/v1/search/articleId
-    // (or wherever)
-    // debounced by 1000 miliseconds
-    searchResults: {
-      // the function that returns a promise
-      get() {
-        return this.axios.get(`/search/${this.query}`)
-      },
+	data: {
+		query: ''
+	},
+	asyncComputed: {
+		// whenever query changes,
+		// a request will be made to
+		// http://api.example.com/v1/search/articleId
+		// (or wherever)
+		// debounced by 1000 miliseconds
+		searchResults: {
+			// the function that returns a promise
+			get() {
+				return this.axios.get(`/search/${this.query}`)
+			},
 
-      // the thing to watch for changes
-      watch: 'query'
-      // ... or ...
-      watch() {
-        // do this if you need to watch multiple things
-        this.query
-      }
-    }
-  }
+			// the thing to watch for changes
+			watch: 'query'
+			// ... or ...
+			watch() {
+				// do this if you need to watch multiple things
+				this.query
+			}
+		}
+	}
 })
 ```
 
@@ -122,11 +122,11 @@ new Vue({
 input(v-model="query")
 span(v-if="searchResults$pending") Waiting for you to stop typing...
 span(v-if="searchResults$error") There was an error while making your search!
-  | {{searchResults$error.message}}
+	| {{searchResults$error.message}}
 
 #search-results(:class="{'loading': searchResults$loading}")
-  .search-result(v-for="result in results")
-    p {{result.text}}
+	.search-result(v-for="result in results")
+		p {{result.text}}
 ```
 
 
@@ -155,16 +155,16 @@ The default naming strategy for the meta properties like `loading` and `pending`
 
 ```js
 Vue.use(VueAsyncProperties, {
-  // for "article" and "loading"
-  // "article__Loading"
-  meta: (propName, metaName) => `${propName}__${myCapitalize(metaName)}`,
+	// for "article" and "loading"
+	// "article__Loading"
+	meta: (propName, metaName) => `${propName}__${myCapitalize(metaName)}`,
 
-  // ... or ...
-  // "$loading_article"
-  meta: (propName, metaName) => '$' + metaName + '_' + propName,
+	// ... or ...
+	// "$loading_article"
+	meta: (propName, metaName) => '$' + metaName + '_' + propName,
 
-  // the default is:
-  meta: (propName, metaName) => `${propName}$${metaName}`,
+	// the default is:
+	meta: (propName, metaName) => `${propName}$${metaName}`,
 })
 ```
 
@@ -175,34 +175,34 @@ If you don't want a request to be performed, you can directly return a value ins
 
 ```js
 new Vue({
-  props: ['articleId'],
-  asyncData: {
-    article: {
-      get() {
-        // if you return null
-        // the default will be used
-        // and no request will be performed
-        if (!this.articleId) return null
+	props: ['articleId'],
+	asyncData: {
+		article: {
+			get() {
+				// if you return null
+				// the default will be used
+				// and no request will be performed
+				if (!this.articleId) return null
 
-        // ... or ...
+				// ... or ...
 
-        // doing this will directly set the value
-        // and no request will be performed
-        if (!this.articleId) return {
-          title: "No Article ID!",
-          content: "There's nothing there."
-        }
-        else return this.axios.get(`/articles/${this.articleId}`)
-      },
-      // this will be used if null or undefined
-      // are returned by the method or the request
-      // or if there's an error
-      default: {
-        title: "Default Title",
-        content: "Default Content"
-      }
-    }
-  }
+				// doing this will directly set the value
+				// and no request will be performed
+				if (!this.articleId) return {
+					title: "No Article ID!",
+					content: "There's nothing there."
+				}
+				else return this.axios.get(`/articles/${this.articleId}`)
+			},
+			// this will be used if null or undefined
+			// are returned by the method or the request
+			// or if there's an error
+			default: {
+				title: "Default Title",
+				content: "Default Content"
+			}
+		}
+	}
 })
 ```
 
@@ -216,31 +216,31 @@ By default, anything you pass to `debounce` only applies to `asyncComputed`, sin
 ```js
 // global configuration
 Vue.use(VueAsyncProperties, {
-  // if the value is just a number, it's used as the wait time
-  debounce: 500,
+	// if the value is just a number, it's used as the wait time
+	debounce: 500,
 
-  // you can pass an object for more complex situations
-  debounce: {
-    wait: 500,
+	// you can pass an object for more complex situations
+	debounce: {
+		wait: 500,
 
-    // these are the same options used in lodash debounce
-    // https://lodash.com/docs/#debounce
-    leading: false, // default
-    trailing: true, // default
-    maxWait: null // default
-  }
+		// these are the same options used in lodash debounce
+		// https://lodash.com/docs/#debounce
+		leading: false, // default
+		trailing: true, // default
+		maxWait: null // default
+	}
 })
 
 // property level configuration
 new Vue({
-  asyncComputed: {
-    searchResults: {
-      get() { /* ... */ },
-      watch: '...'
-      // this will be 1000 instead of the globally configured 500
-      debounce: 1000
-    }
-  }
+	asyncComputed: {
+		searchResults: {
+			get() { /* ... */ },
+			watch: '...'
+			// this will be 1000 instead of the globally configured 500
+			debounce: 1000
+		}
+	}
 })
 ```
 
@@ -251,20 +251,20 @@ new Vue({
 
 ```js
 new Vue({
-  asyncData: {
-    article: {
-      get() { /* ... */ },
-      // won't be triggered until article$refresh is called
-      lazy: true, // default 'false'
+	asyncData: {
+		article: {
+			get() { /* ... */ },
+			// won't be triggered until article$refresh is called
+			lazy: true, // default 'false'
 
-      // if a default is provided,
-      // it will be used until article$refresh is called
-      default: {
-        title: "Default Title",
-        content: "Default content"
-      }
-    }
-  }
+			// if a default is provided,
+			// it will be used until article$refresh is called
+			default: {
+				title: "Default Title",
+				content: "Default content"
+			}
+		}
+	}
 })
 ```
 
@@ -272,17 +272,17 @@ new Vue({
 
 ```js
 new Vue({
-  data: {
-    query: 'initial query'
-  },
-  asyncComputed: {
-    searchResults: {
-      get() { /* ... */ },
-      watch: 'query',
-      // will be triggered right away with 'initial query'
-      eager: true // default 'false'
-    }
-  }
+	data: {
+		query: 'initial query'
+	},
+	asyncComputed: {
+		searchResults: {
+			get() { /* ... */ },
+			watch: 'query',
+			// will be triggered right away with 'initial query'
+			eager: true // default 'false'
+		}
+	}
 })
 ```
 
@@ -295,32 +295,32 @@ Pass a `transform` function if you have some processing you'd always like to do 
 
 ```js
 Vue.use(VueAsyncProperties, {
-  // this is the default
-  transform(result) {
-    return result.data
-  }
+	// this is the default
+	transform(result) {
+		return result.data
+	}
 
-  // ... or ...
-  // doing this will prevent any transforms
-  // from being applied in any properties
-  transform: null
+	// ... or ...
+	// doing this will prevent any transforms
+	// from being applied in any properties
+	transform: null
 })
 
 new Vue({
-  asyncData: {
-    article: {
-      get() { /* ... */ },
-      // this will override the global transform
-      transform(result) {
-        return doSomeTransforming(result)
-      },
+	asyncData: {
+		article: {
+			get() { /* ... */ },
+			// this will override the global transform
+			transform(result) {
+				return doSomeTransforming(result)
+			},
 
-      // ... or ...
-      // doing this will prevent any transforms
-      // from being applied to this property
-      transform: null
-    }
-  }
+			// ... or ...
+			// doing this will prevent any transforms
+			// from being applied to this property
+			transform: null
+		}
+	}
 })
 ```
 
@@ -330,22 +330,22 @@ You can set up error handling, either globally (maybe you have some sort of noti
 
 ```js
 Vue.use(VueAsyncProperties, {
-  error(error) {
-    Notification.error({ title: "error", message: error.message })
-  }
+	error(error) {
+		Notification.error({ title: "error", message: error.message })
+	}
 })
 
 new Vue({
-  asyncData: {
-    article: {
-      get() { /* ... */ },
+	asyncData: {
+		article: {
+			get() { /* ... */ },
 
-      // this will override the error handler
-      error(error) {
-        this.doErrorStuff(error)
-      }
-    }
-  }
+			// this will override the error handler
+			error(error) {
+				this.doErrorStuff(error)
+			}
+		}
+	}
 })
 ```
 
@@ -353,9 +353,9 @@ There is a global default, which simply logs the error to the console:
 
 ```js
 Vue.use(VueAsyncProperties, {
-  error(error) {
-    console.error(error)
-  }
+	error(error) {
+		console.error(error)
+	}
 })
 ```
 

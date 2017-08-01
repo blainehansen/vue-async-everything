@@ -6,7 +6,7 @@
 	"scripts": {
 		"build": "webpack -p",
 		"version": "npm run build && git add -A lib",
-		"postversion": "git push origin master && git push origin master --tags",
+		"postversion": "git push origin master && git push origin master --tags && npm publish",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [
