@@ -1,4 +1,4 @@
-import { get, pick, defaultsDeep, cloneDeep } from 'lodash'
+import { get, pick, defaultsDeep, cloneDeep, isNil } from 'lodash'
 
 const globalDefaultObject = {
 	meta: (propName, metaName) => `${propName}$${metaName}`,
@@ -52,7 +52,8 @@ export function computedDefaults(options, bigOptions = {}) {
 			options: {}
 		}
 	}
-	else options.debounce.options = pick(options.debounce, 'leading', 'trailing', 'maxWait')
+	else if (isNil(options.debounce)) options.debounce = {}
+	else options.debounce = {wait: options.debounce.wait, options: pick(options.debounce, 'leading', 'trailing', 'maxWait')}
 
 	if (options.transform === null) options.transform = (result) => result
 
