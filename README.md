@@ -12,6 +12,10 @@
 
 ---
 
+```bash
+npm install --save vue-async-properties
+```
+
 Has convenient features for:
 
 - loading, pending, and error flags
