@@ -33,8 +33,6 @@ export function globalDefaults(options) {
 }
 
 export function dataDefaults(options, bigOptions = {}) {
-	options = cloneDeep(options)
-
 	if (typeof options === 'function') {
 		options = { get: options }
 	}
