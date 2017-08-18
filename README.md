@@ -363,6 +363,14 @@ Vue.use(VueAsyncProperties, {
 })
 ```
 
-## Contributions
+## Contributing
 
-If you'd like to contribute, just fork the project and then make a pull request!
+This package has testing set up with [mocha](https://mochajs.org/) and [chai expect](http://chaijs.com/api/bdd/).
+
+If you'd like to contribute, perhaps because you uncovered a bug or would like to add features:
+
+- fork the project
+- clone it locally
+- write tests to either to reveal the bug you've discovered or cover the features you're adding (write them in the `test` directory, and take a look at existing tests as well as the mocha and chai expect docs to understand how)
+- run those tests with `npm test` (use `npm test -- -g "text matching test description"` to only run particular tests)
+- once you're done with development and all tests are passing (including the old ones), submit a pull request!
