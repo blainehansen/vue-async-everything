@@ -28,23 +28,26 @@ const computedLocalDefaultObject = {
 
 
 export function globalDefaults(options) {
-	options = cloneDeep(options)
+	options = cloneDeep(options || {})
 	return defaultsDeep(options, globalDefaultObject)
 }
 
 export function dataDefaults(options, bigOptions = {}) {
-	options = cloneDeep(options)
-
 	if (typeof options === 'function') {
 		options = { get: options }
 	}
+
+	options = cloneDeep(options || {})
+
+	delete options.debounce
+
 	if (options.transform === null) options.transform = (result) => result
 
 	return defaultsDeep(options, bigOptions, commonLocalDefaultObject, dataLocalDefaultObject)
 }
 
 export function computedDefaults(options, bigOptions = {}) {
-	options = cloneDeep(options)
+	options = cloneDeep(options || {})
 
 	if (typeof options.debounce === 'number') {
 		options.debounce = {
