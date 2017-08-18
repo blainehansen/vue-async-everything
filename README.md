@@ -374,3 +374,5 @@ If you'd like to contribute, perhaps because you uncovered a bug or would like t
 - write tests to either to reveal the bug you've discovered or cover the features you're adding (write them in the `test` directory, and take a look at existing tests as well as the mocha and chai expect docs to understand how)
 - run those tests with `npm test` (use `npm test -- -g "text matching test description"` to only run particular tests)
 - once you're done with development and all tests are passing (including the old ones), submit a pull request!
+
+If you'd like to add tests that ensure the plugin works as expected in vue components, take a look at the [vue testing docs](https://vuejs.org/v2/guide/unit-testing.html), and feel free to use them as a guide to do so.
