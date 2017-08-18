@@ -1,6 +1,6 @@
 {
 	"name": "vue-async-properties",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"description": "Vue Component Plugin for asynchronous data and computed properties.",
 	"main": "./lib/index.js",
 	"scripts": {
