@@ -5,6 +5,7 @@
 	"main": "./lib/index.js",
 	"scripts": {
 		"build": "webpack -p",
+		"preversion": "npm test",
 		"version": "npm run build && git add -A lib",
 		"postversion": "git push origin master && git push origin master --tags && npm publish",
 		"test": "mocha --compilers js:babel-core/register ./test/**/*.js"
