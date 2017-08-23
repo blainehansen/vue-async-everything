@@ -37,11 +37,11 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 	}
 
 	return () => {
+		assignPending(false)
 		let givenResult = givenFunction.call(this)
 
 		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
 			assignLoading(true)
-			assignPending(false)
 			assignError(null)
 			
 			// place a then on the promise
@@ -51,7 +51,6 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 			})
 			.catch((error) => {
 				// TODO check if they want it cleared on error
-				this[propName] = null
 				assignError(error)
 				errorHandler(error)
 

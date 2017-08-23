@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 
 import { globalDefaults, dataDefaults, computedDefaults } from '../src/defaults.js'
+
 describe("defaults system", function() {
 
 	describe("globalDefaults", function() {
@@ -170,6 +171,7 @@ describe("defaults system", function() {
 
 
 import AsyncPropertiesPlugin from '../src/index.js'
+
 describe("top level", function() {
 	const fakeVue = { mixin(mixinObj) {} }
 

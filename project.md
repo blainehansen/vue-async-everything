@@ -1,4 +1,4 @@
-clean and release
+get baseline functionality tested and version
 
 [vue-async-properties]
 async methods

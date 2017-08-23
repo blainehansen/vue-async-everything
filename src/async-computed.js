@@ -30,7 +30,6 @@ export default function AsyncComputedMixinBuilder(options) {
 
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
-			console.log(opt.debounce)
 			const debouncedFunction = debounce(
 				resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error),
 				opt.debounce.wait, opt.debounce.options
@@ -46,13 +45,14 @@ export default function AsyncComputedMixinBuilder(options) {
 			}
 
 			methods[metaNow(propName)] = function() {
+				this[pendingName] = false
 				debouncedFunction.flush()
 			}
 		})
 
 	},
 
-	created() {
+	beforeMount() {
 		const properties = this.$options.asyncComputed
 
 		each(properties, (prop, propName) => {

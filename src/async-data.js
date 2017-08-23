@@ -34,7 +34,7 @@ export default function AsyncDataMixinBuilder(options) {
 	},
 
 	// for all non lazy properties, call refresh methods
-	created() {
+	beforeMount() {
 		const properties = this.$options.asyncData
 
 		each(properties, (prop, propName) => {
