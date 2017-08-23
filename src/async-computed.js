@@ -1,4 +1,4 @@
-import { each, debounce } from 'lodash'
+import { debounce } from 'lodash'
 import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
 import { globalDefaults, computedDefaults } from './defaults.js'
 
@@ -26,8 +26,7 @@ export default function AsyncComputedMixinBuilder(options) {
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
-		each(properties, (prop, propName) => {
-
+		for (let [propName, prop] of properties) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
 			const debouncedFunction = debounce(
@@ -48,14 +47,14 @@ export default function AsyncComputedMixinBuilder(options) {
 				this[pendingName] = false
 				debouncedFunction.flush()
 			}
-		})
+		}
 
 	},
 
 	beforeMount() {
 		const properties = this.$options.asyncComputed
 
-		each(properties, (prop, propName) => {
+		for (let [propName, prop] of properties) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
 			// get the debounced version of it
@@ -76,8 +75,7 @@ export default function AsyncComputedMixinBuilder(options) {
 				}
 
 			}, { deep: true, immediate: eager })
-
-		})
+		}
 
 	},
 

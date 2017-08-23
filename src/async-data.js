@@ -1,4 +1,3 @@
-import { each } from 'lodash'
 import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
 import { globalDefaults, dataDefaults } from './defaults.js'
 
@@ -24,12 +23,13 @@ export default function AsyncDataMixinBuilder(options) {
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
-		each(properties, (prop, propName) => {
+		for (let [propName, prop] of properties) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)
 
 			methods[metaRefresh(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
+		}
 
-		})
+
 
 	},
 
@@ -37,14 +37,13 @@ export default function AsyncDataMixinBuilder(options) {
 	beforeMount() {
 		const properties = this.$options.asyncData
 
-		each(properties, (prop, propName) => {
-
+		for (let [propName, prop] of properties) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)
 
 			if (!opt.lazy) {
 				this[metaRefresh(propName)]()
 			}
-		})
+		}
 
 	},
 	
