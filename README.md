@@ -365,14 +365,12 @@ Vue.use(VueAsyncProperties, {
 
 ## Contributing
 
-This package has testing set up with [mocha](https://mochajs.org/) and [chai expect](http://chaijs.com/api/bdd/).
+This package has testing set up with [mocha](https://mochajs.org/) and [chai expect](http://chaijs.com/api/bdd/). Since many of the tests are on the functionality of Vue components, the [vue testing docs](https://vuejs.org/v2/guide/unit-testing.html) are a good place to look for guidance.
 
 If you'd like to contribute, perhaps because you uncovered a bug or would like to add features:
 
 - fork the project
 - clone it locally
-- write tests to either to reveal the bug you've discovered or cover the features you're adding (write them in the `test` directory, and take a look at existing tests as well as the mocha and chai expect docs to understand how)
+- write tests to either to reveal the bug you've discovered or cover the features you're adding (write them in the `test` directory, and take a look at existing tests as well as the mocha, chai expect, and vue testing docs to understand how)
 - run those tests with `npm test` (use `npm test -- -g "text matching test description"` to only run particular tests)
 - once you're done with development and all tests are passing (including the old ones), submit a pull request!
-
-If you'd like to add tests that ensure the plugin works as expected in vue components, take a look at the [vue testing docs](https://vuejs.org/v2/guide/unit-testing.html), and feel free to use them as a guide to do so.
