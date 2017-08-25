@@ -1,4 +1,4 @@
-import { isNil } from 'lodash'
+import { each, isNil } from 'lodash'
 
 
 export function metaFunctionBuilder(metaName, metaFunction) {
@@ -80,7 +80,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 	}
 
 	let dataObj = {}
-	for (let [propName, prop] of properties) {
+	each(properties, (prop, propName) => {
 		// the property itself
 		const defaultValue = prop.default || null
 		dataObj[propName] = defaultValue
@@ -95,7 +95,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 		dataObj[metaError(propName)] = null
 		// default
 		dataObj[metaDefault(propName)] = prop.default || null
-	}
+	})
 		
 
 	return dataObj
