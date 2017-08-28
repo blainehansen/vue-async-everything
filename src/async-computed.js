@@ -29,24 +29,32 @@ export default function AsyncComputedMixinBuilder(options) {
 		each(properties, (prop, propName) => {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
-			const debouncedFunction = debounce(
-				resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error),
-				opt.debounce.wait, opt.debounce.options
-			)
+			let resolverFunction
 
-			this[metaDebounce(propName)] = debouncedFunction
+			if (opt.debounce !== false) {
+				resolverFunction = debounce(
+					resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error),
+					opt.debounce.wait, opt.debounce.options
+				)
 
-			// inject the $cancel and $now
-			const pendingName = metaPending(propName)
-			methods[metaCancel(propName)] = function() {
-				this[pendingName] = false
-				debouncedFunction.cancel()
+				// inject the $cancel and $now
+				const pendingName = metaPending(propName)
+				methods[metaCancel(propName)] = function() {
+					this[pendingName] = false
+					resolverFunction.cancel()
+				}
+
+				methods[metaNow(propName)] = function() {
+					this[pendingName] = false
+					resolverFunction.flush()
+				}
+
+			}
+			else {
+				resolverFunction = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
 			}
 
-			methods[metaNow(propName)] = function() {
-				this[pendingName] = false
-				debouncedFunction.flush()
-			}
+			this[metaDebounce(propName)] = resolverFunction
 		})
 
 	},
@@ -58,20 +66,25 @@ export default function AsyncComputedMixinBuilder(options) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
 			// get the debounced version of it
-			const debouncedFunction = this[metaDebounce(propName)]
-			// const debouncedFunction = this[metaDebounce(propName)].bind(this)
+			const resolverFunction = this[metaDebounce(propName)]
+			// const resolverFunction = this[metaDebounce(propName)].bind(this)
 
 			let hasRun = false
 			const eager = opt.eager
+			const shouldDebounce = opt.debounce !== false
 			this.$watch(opt.watch, function() {
 				if (eager && !hasRun) {
 					hasRun = true
-					debouncedFunction()
-					debouncedFunction.flush()
+					resolverFunction()
+					if (shouldDebounce) {
+						resolverFunction.flush()
+					}
 				}
 				else {
-					this[metaPending(propName)] = true
-					debouncedFunction()
+					if (shouldDebounce) {
+						this[metaPending(propName)] = true
+					}
+					resolverFunction()
 				}
 
 			}, { deep: true, immediate: eager })

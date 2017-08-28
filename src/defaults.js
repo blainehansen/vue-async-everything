@@ -55,7 +55,8 @@ export function computedDefaults(options, bigOptions = {}) {
 			options: {}
 		}
 	}
-	else if (isNil(options.debounce)) options.debounce = {}
+	else if (options.debounce === null) options.debounce = false
+	else if (options.debounce === undefined) options.debounce = {}
 	else options.debounce = {wait: options.debounce.wait, options: pick(options.debounce, 'leading', 'trailing', 'maxWait')}
 
 	if (options.transform === null) options.transform = (result) => result

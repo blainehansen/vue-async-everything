@@ -142,6 +142,10 @@ describe("defaults system", function() {
 				.to.be.an('object')
 				.that.deep.equal({ wait: 500, options: {maxWait: 1500, leading: true, trailing: false} })
 
+			computedDefaultsObj = computedDefaults({debounce: null})
+			expect(computedDefaultsObj)
+				.property('debounce').to.be.false
+
 
 			// whatever we pass in should show up with other defaults
 			let sampleValidObj = { transform: (result) => result.data, error: (e) => e.stuff }

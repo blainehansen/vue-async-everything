@@ -248,6 +248,33 @@ new Vue({
 })
 ```
 
+It is also allowed to pass `null` to debounce, to specify that no debounce should be applied. If this is done, `property$pending`, `property$cancel`, and `property$now` will not exist. The same rules that apply to other options holds here; the global setting will set all components, but it can be overridden by the local settings.
+
+
+```js
+// no components will use debounces
+Vue.use(VueAsyncProperties, {
+  debounce: null
+})
+
+// just this component won't have a debounce
+new Vue({
+  asyncComputed: {
+    searchResults: {
+      get() { /* ... */ },
+      watch: '...'
+      debounce: null
+
+      // this however would debounce,
+      // since the local overrides the global
+      debounce: 500
+    }
+  }
+})
+```
+
+This should only be done when the `asyncComputed` only watches values that aren't changed frequently by the user, otherwise a huge number of requests will be sent out.
+
 
 ## Lazy and Eager
 

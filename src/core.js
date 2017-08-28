@@ -85,7 +85,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 		const defaultValue = prop.default || null
 		dataObj[propName] = defaultValue
 
-		if (!forData) {
+		if (!forData && prop.debounce !== null) {
 			// pending
 			dataObj[metaPending(propName)] = false
 		}

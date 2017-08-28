@@ -3,11 +3,11 @@ import Vue from 'vue'
 import { delay } from 'bluebird'
 
 // for (let [key, value] of {key: 'value', thing: 'other'}) {
-Object.prototype[Symbol.iterator] = function*() {
-	for(let key of Object.keys(this)) {
-		yield([ key, this[key] ])
-	}
-}
+// Object.prototype[Symbol.iterator] = function*() {
+// 	for(let key of Object.keys(this)) {
+// 		yield([ key, this[key] ])
+// 	}
+// }
 
 
 import AsyncDataMixinBuilder from '../src/async-data.js'
@@ -17,9 +17,12 @@ const defaultString = 'defaultString'
 const oneString = 'oneString'
 const twoString = 'twoString'
 
-function mixinAndExtend(options = {debounce: 5, transform: null}, asyncDataOptions = {}, asyncComputedOptions = {}) {
+function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOptions = {}) {
 	return Vue.extend({
-		mixins: [AsyncDataMixinBuilder(options), AsyncComputedMixinBuilder(options)],
+		mixins: [
+			AsyncDataMixinBuilder({debounce: 5, transform: null, ...options}),
+			AsyncComputedMixinBuilder({debounce: 5, transform: null, ...options})
+		],
 		render(h) {
 			return h('div', [h('span', this.member), h('span', this.delayMember), h('span', this.upperMember)])
 		},
@@ -61,6 +64,9 @@ const LazyEagerComponent = mixinAndExtend(undefined, { lazy: true }, { eager: tr
 const WithDefaultComponent = mixinAndExtend(undefined, { default: defaultString }, { default: defaultString })
 
 const ErrorHandlerComponent = mixinAndExtend(undefined, { error: (e) => e }, { error: (e) => e })
+
+const NoDebounceComponent = mixinAndExtend(undefined, undefined, {debounce: null})
+
 
 let c
 
@@ -178,12 +184,12 @@ describe("asyncComputed", function() {
 		expect(c).property('upperMember').to.eql(c.upperMember$default)
 
 		expect(c).property('upperMember$loading').to.be.false
-		expect(c).property('upperMember$pending').to.be.false
 
 		expect(c).property('upperMember$error').to.be.null
 
 		expect(c).property('upperMember$cancel').to.be.a('function')
 		expect(c).property('upperMember$now').to.be.a('function')
+		expect(c).property('upperMember$pending').to.be.false
 
 		// after mount
 		c.$mount()
@@ -278,6 +284,32 @@ describe("asyncComputed", function() {
 		await delay(6)
 		expect(c).property('upperMember').to.eql(twoString.toUpperCase())
 		expect(c).property('upperMember$loading').to.be.false
+		expect(c).property('upperMember$error').to.be.null
+
+	})
+
+
+	it ("doesn't debounce when debounce is null", async function() {
+
+		c = new NoDebounceComponent()
+
+		expect(c).to.not.have.property('upperMember$pending')
+
+		expect(c).to.not.have.property('upperMember$cancel')
+		expect(c).to.not.have.property('upperMember$now')
+
+		c.$mount()
+
+		// after change
+		c.member = twoString
+		await Vue.nextTick()
+		expect(c).property('upperMember$loading').to.be.true
+
+		// after load
+		await delay(6)
+		expect(c).property('upperMember$loading').to.be.false
+
+		expect(c).property('upperMember').to.eql(twoString.toUpperCase())
 		expect(c).property('upperMember$error').to.be.null
 
 	})
