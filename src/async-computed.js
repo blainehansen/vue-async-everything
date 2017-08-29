@@ -94,7 +94,13 @@ export default function AsyncComputedMixinBuilder(options) {
 
 			if (shouldDebounce) {
 				// if there's no debouncing set up, then watchClosely is ignored
-				this.$watch(opt.watchClosely, resolverFunction, { deep: true, immediate: false })
+				this.$watch(opt.watchClosely, function() {
+
+					this[metaPending(propName)] = false
+					debouncedResolverFunction.cancel()
+					resolverFunction()
+
+				}, { deep: true, immediate: false })
 			}
 
 		})
