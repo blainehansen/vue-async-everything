@@ -28,7 +28,8 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 		},
 		data() {
 			return {
-				member: oneString
+				member: oneString,
+				triggerMember: false
 			}
 		},
 		asyncData: {
@@ -42,6 +43,7 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 		asyncComputed: {
 			upperMember: {
 				watch: 'member',
+				watchClosely: 'triggerMember',
 				get() {
 					return delay(5).return(this.member.toUpperCase())
 				},
@@ -253,9 +255,21 @@ describe("asyncComputed", function() {
 	})
 
 
-	// it("eager", function() {
+	it("respects the eager option", async function() {
+		c = new LazyEagerComponent()
 
-	// })
+		c.$mount()
+		expect(c).property('upperMember$pending').to.be.false
+		expect(c).property('upperMember$loading').to.be.true
+
+		// after load
+		await delay(6)
+		expect(c).property('upperMember$pending').to.be.false
+		expect(c).property('upperMember$loading').to.be.false
+
+		expect(c).property('upperMember').to.eql(oneString.toUpperCase())
+		expect(c).property('upperMember$error').to.be.null
+	})
 
 	// it("default", function() {
 
@@ -289,7 +303,7 @@ describe("asyncComputed", function() {
 	})
 
 
-	it ("doesn't debounce when debounce is null", async function() {
+	it("doesn't debounce when debounce is null", async function() {
 
 		c = new NoDebounceComponent()
 
@@ -310,6 +324,29 @@ describe("asyncComputed", function() {
 		expect(c).property('upperMember$loading').to.be.false
 
 		expect(c).property('upperMember').to.eql(twoString.toUpperCase())
+		expect(c).property('upperMember$error').to.be.null
+
+	})
+
+
+	it("invokes immediately when watchClosely changes", async function() {
+
+		c = new BaseComponent()
+
+		c.$mount()
+
+		// after change
+		c.triggerMember = true
+		await Vue.nextTick()
+		expect(c).property('upperMember$loading').to.be.true
+		expect(c).property('upperMember$pending').to.be.false
+
+		// after load
+		await delay(6)
+		expect(c).property('upperMember$loading').to.be.false
+		expect(c).property('upperMember$pending').to.be.false
+
+		expect(c).property('upperMember').to.eql(oneString.toUpperCase())
 		expect(c).property('upperMember$error').to.be.null
 
 	})

@@ -275,6 +275,59 @@ new Vue({
 
 This should only be done when the `asyncComputed` only watches values that aren't changed frequently by the user, otherwise a huge number of requests will be sent out.
 
+### `watchClosely`
+
+Sometimes the method should debounce when some values change (things like key inputs or anything that might change rapidly), and *not debounce* when other values change (things like boolean switches that are more discrete, or things that are only changed programmatically).
+
+For these situations, you can set up a separate watcher called `watchClosely` that will trigger an immediate, undebounced invocation of the `asyncComputed`.
+
+```js
+new Vue({
+  data: {
+    query: '',
+    includeInactiveResults: false
+  },
+  asyncComputed: {
+    searchResults: {
+      get() {
+        return this.axios.get(`/search/${this.query}`)
+      },
+
+      // the normal, debounced watcher
+      watch: 'query',
+      // whenever this changes,
+      // the method will be invoked immediately
+      // without any debouncing
+      watchClosely: 'includeInactiveResults'
+    }
+  }
+})
+```
+
+Obviously, if you pass `debounce: null`, then `watchClosely` will be ignored, since invoking immediately without any debounce is the default behavior.
+
+Also, if you only pass `watchClosely`, that will automatically infer that debouncing should never be done.
+
+```js
+new Vue({
+  data: {
+    showOldPosts: false
+  },
+  asyncComputed: {
+    searchResults: {
+      // a change to showOldPosts
+      // should always immediately
+      // retrigger a request
+      watchClosely: 'showOldPosts',
+      get() {
+        if (this.showOldPosts) return this.axios.get('/posts')
+        else return this.axios.get('/posts/new')
+      }
+    }
+  }
+})
+```
+
 
 ## Lazy and Eager
 

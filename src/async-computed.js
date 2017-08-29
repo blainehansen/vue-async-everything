@@ -14,8 +14,9 @@ export default function AsyncComputedMixinBuilder(options) {
 	const metaError = metaFunctionBuilder('error', meta)
 	const metaDefault = metaFunctionBuilder('default', meta)
 	const metaDebounce = metaFunctionBuilder('debounce', meta)
+	const metaResolver = metaFunctionBuilder('resolver', meta)
 
-	const metas = { metaCancel, metaNow, metaPending, metaLoading, metaError, metaDefault, metaDebounce }
+	const metas = { metaCancel, metaNow, metaPending, metaLoading, metaError, metaDefault, metaDebounce, metaResolver }
 
 	const computedGlobalDefaults = computedDefaults(options)
 
@@ -29,11 +30,11 @@ export default function AsyncComputedMixinBuilder(options) {
 		each(properties, (prop, propName) => {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
-			let resolverFunction
+			let resolverFunction = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
 
 			if (opt.debounce !== false) {
-				resolverFunction = debounce(
-					resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error),
+				let debouncedResolverFunction = debounce(
+					resolverFunction,
 					opt.debounce.wait, opt.debounce.options
 				)
 
@@ -41,20 +42,18 @@ export default function AsyncComputedMixinBuilder(options) {
 				const pendingName = metaPending(propName)
 				methods[metaCancel(propName)] = function() {
 					this[pendingName] = false
-					resolverFunction.cancel()
+					debouncedResolverFunction.cancel()
 				}
 
 				methods[metaNow(propName)] = function() {
 					this[pendingName] = false
-					resolverFunction.flush()
+					debouncedResolverFunction.flush()
 				}
 
-			}
-			else {
-				resolverFunction = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
+				this[metaDebounce(propName)] = debouncedResolverFunction
 			}
 
-			this[metaDebounce(propName)] = resolverFunction
+			this[metaResolver(propName)] = resolverFunction
 		})
 
 	},
@@ -65,29 +64,39 @@ export default function AsyncComputedMixinBuilder(options) {
 		each(properties, (prop, propName) => {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
+			const resolverFunction = this[metaResolver(propName)]
 			// get the debounced version of it
-			const resolverFunction = this[metaDebounce(propName)]
-			// const resolverFunction = this[metaDebounce(propName)].bind(this)
+			const debouncedResolverFunction = this[metaDebounce(propName)]
 
 			let hasRun = false
 			const eager = opt.eager
-			const shouldDebounce = opt.debounce !== false
-			this.$watch(opt.watch, function() {
+			const shouldDebounce = !(opt.debounce === false || !opt.watch)
+
+			const defaultWatch = opt.watch || opt.watchClosely
+
+			this.$watch(defaultWatch, function() {
+
 				if (eager && !hasRun) {
 					hasRun = true
 					resolverFunction()
-					if (shouldDebounce) {
-						resolverFunction.flush()
-					}
 				}
 				else {
 					if (shouldDebounce) {
 						this[metaPending(propName)] = true
+						debouncedResolverFunction()
 					}
-					resolverFunction()
+					else {
+						resolverFunction()
+					}
 				}
 
 			}, { deep: true, immediate: eager })
+
+			if (shouldDebounce) {
+				// if there's no debouncing set up, then watchClosely is ignored
+				this.$watch(opt.watchClosely, resolverFunction, { deep: true, immediate: false })
+			}
+
 		})
 
 	},
