@@ -92,7 +92,7 @@ export default function AsyncComputedMixinBuilder(options) {
 
 			}, { deep: true, immediate: eager })
 
-			if (shouldDebounce) {
+			if (shouldDebounce && opt.watchClosely) {
 				// if there's no debouncing set up, then watchClosely is ignored
 				this.$watch(opt.watchClosely, function() {
 

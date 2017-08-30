@@ -43,7 +43,6 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 		asyncComputed: {
 			upperMember: {
 				watch: 'member',
-				watchClosely: 'triggerMember',
 				get() {
 					return delay(5).return(this.member.toUpperCase())
 				},
@@ -68,6 +67,8 @@ const WithDefaultComponent = mixinAndExtend(undefined, { default: defaultString 
 const ErrorHandlerComponent = mixinAndExtend(undefined, { error: (e) => e }, { error: (e) => e })
 
 const NoDebounceComponent = mixinAndExtend(undefined, undefined, {debounce: null})
+
+const WatchCloselyComponent = mixinAndExtend(undefined, undefined, {watchClosely: 'triggerMember'})
 
 
 let c
@@ -331,7 +332,7 @@ describe("asyncComputed", function() {
 
 	it("invokes immediately when watchClosely changes", async function() {
 
-		c = new BaseComponent()
+		c = new WatchCloselyComponent()
 
 		c.$mount()
 
