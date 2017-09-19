@@ -13,8 +13,12 @@
 	"keywords": [
 		"vue",
 		"asyncComputed",
+		"async computed",
 		"asyncData",
+		"async data",
 		"component",
+		"component data",
+		"component computed",
 		"plugin",
 		"components",
 		"async",

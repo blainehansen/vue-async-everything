@@ -25,7 +25,7 @@ Has convenient features for:
 - request data transformation
 - error handling
 
-## Version `0.1.X`
+## Version `0.2.X`
 
 The basic useage looks like this.
 
@@ -138,7 +138,7 @@ span(v-if="searchResults$error") There was an error while making your search!
 
 Properties to indicate the status of your requests, and methods to manage them, are automatically added to the component.
 
-- `prop$loading`: if a request currently in progress
+- `prop$loading`: if a request is currently in progress
 - `prop$error`: the error of the last request
 - `prop$default`: the default value you provided, if any
 
