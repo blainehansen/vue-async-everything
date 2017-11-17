@@ -186,7 +186,7 @@ describe("asyncData", function() {
 
 		c.$mount()
 		// after load
-		await delay(7)
+		await delay(10)
 
 		expect(c).property('delayMember$error').to.have.property('message').that.eql(oneString)
 		expect(c).property('otherErrorContainer').to.eql(errorMessage)
