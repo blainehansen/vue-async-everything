@@ -17,6 +17,9 @@ const defaultString = 'defaultString'
 const oneString = 'oneString'
 const twoString = 'twoString'
 
+const transformCompound = 'transformed '
+const errorMessage = 'error message'
+
 function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOptions = {}) {
 	return Vue.extend({
 		mixins: [
@@ -29,7 +32,11 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 		data() {
 			return {
 				member: oneString,
-				triggerMember: false
+				triggerMember: false,
+
+				transformCompound,
+				errorMessage,
+				otherErrorContainer: null,
 			}
 		},
 		asyncData: {
@@ -64,11 +71,29 @@ const LazyEagerComponent = mixinAndExtend(undefined, { lazy: true }, { eager: tr
 
 const WithDefaultComponent = mixinAndExtend(undefined, { default: defaultString }, { default: defaultString })
 
-const ErrorHandlerComponent = mixinAndExtend(undefined, { error: (e) => e }, { error: (e) => e })
+const ErrorHandlerComponent = mixinAndExtend({
+	error(e) {
+		this.otherErrorContainer = this.errorMessage
+	}
+}, {
+	get() {
+		return delay(5).then(() => {throw new Error(this.member)})
+	}
+}, {
+	get() {
+		return delay(5).then(() => {throw new Error(this.member)})
+	}
+})
 
 const NoDebounceComponent = mixinAndExtend(undefined, undefined, {debounce: null})
 
 const WatchCloselyComponent = mixinAndExtend(undefined, undefined, {watchClosely: 'triggerMember'})
+
+const TransformComponent = mixinAndExtend({
+	transform(result) {
+		return `${this.transformCompound}${result}`
+	}
+}, undefined, undefined)
 
 
 let c
@@ -145,13 +170,27 @@ describe("asyncData", function() {
 
 	// })
 
-	// it("transform", function() {
+	it("transforms properly", async function() {
+		c = new TransformComponent()
 
-	// })
+		c.$mount()
+		expect(c).property('delayMember$loading').to.be.true
 
-	// it("error handler", function() {
+		// after load
+		await delay(10)
+		expect(c).property('delayMember').to.eql(`${transformCompound}${oneString}`)
+	})
 
-	// })
+	it("has a functioning error handler", async function() {
+		c = new ErrorHandlerComponent()
+
+		c.$mount()
+		// after load
+		await delay(7)
+
+		expect(c).property('delayMember$error').to.have.property('message').that.eql(oneString)
+		expect(c).property('otherErrorContainer').to.eql(errorMessage)
+	})
 
 	it("doesn't load with a value instead of a promise", function() {
 		c = new ValueNotPromiseComponent()
@@ -276,13 +315,33 @@ describe("asyncComputed", function() {
 
 	// })
 
-	// it("transform", function() {
+	it("transforms properly", async function() {
+		c = new TransformComponent()
 
-	// })
+		c.$mount()
 
-	// it("error handler", function() {
+		// after change
+		c.member = twoString
+		await Vue.nextTick()
+		// after debounce and load
+		await delay(12)
 
-	// })
+		expect(c).property('upperMember').to.eql(`${transformCompound}${twoString.toUpperCase()}`)
+	})
+
+	it("has a functioning error handler", async function() {
+		c = new ErrorHandlerComponent()
+
+		c.$mount()
+		// after change
+		c.member = twoString
+		await Vue.nextTick()
+		// after debounce and load
+		await delay(12)
+
+		expect(c).property('delayMember$error').to.have.property('message').that.eql(twoString)
+		expect(c).property('otherErrorContainer').to.eql(errorMessage)
+	})
 
 	it("doesn't load with a value instead of a promise", async function() {
 

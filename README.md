@@ -408,6 +408,49 @@ new Vue({
 })
 ```
 
+<!-- ## Pagination and Load More
+
+Pagination is easy, you just need to incorporate your pagesize and offset into the calls
+
+asyncData is eager by default and doesn't automatically update, so if you simply tie whatever your variables are into the method, it'll be fine
+asyncComputed
+
+
+Load more is more interesting, since you need to append new results into the old ones.
+
+You can apply these options to both asyncData and asyncComputed, both would receive a `$more` handler. For both, this handler appends the results of the get function rather than replacing with. All the same old functionality remains with both, asyncData doesn't change unless you `$refresh` or `$more`, asyncComputed has all the same `watch` and `watchClosely` behavior.
+
+```js
+new Vue({
+  data() {
+    return {
+      pageSize: 5
+    }
+  },
+  asyncData: {
+    posts: {
+    }
+  },
+  asyncComputed: {
+    searchResults: {
+      get() {
+        // if you want to detect which page load this is you can manage a custom variable
+        // or simply detect how long the current collection is
+        return this.axios.get(`/search/?offset=${this.posts.length}&pageSize=${pageSize}`)
+      },
+      // this places a posts$more handler on the vm
+      watchClosely: 'pageSize'
+      loadMore: true,
+      loadMore(transformedResults) {
+        // this receives whatever your transform does
+        this.posts.concat(transformedResults)
+      }
+    }
+  }
+})
+``` -->
+
+
 ## Error Handling
 
 You can set up error handling, either globally (maybe you have some sort of notification tray or alerts), or at the property level.

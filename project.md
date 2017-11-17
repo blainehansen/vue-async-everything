@@ -1,6 +1,8 @@
 
 
 [vue-async-properties]
+- allow error and transform to use component `this`
+
 async methods
 - spec
 - returns "results", so you can await

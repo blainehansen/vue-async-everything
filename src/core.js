@@ -7,6 +7,9 @@ export function metaFunctionBuilder(metaName, metaFunction) {
 
 
 export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler) {
+	givenFunction = givenFunction.bind(this)
+	transformFunction = transformFunction.bind(this)
+	errorHandler = errorHandler.bind(this)
 
 	const assignValue = (result) => {
 		// TODO this needs to account for merging
@@ -38,12 +41,12 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 
 	return () => {
 		assignPending(false)
-		let givenResult = givenFunction.call(this)
+		let givenResult = givenFunction()
 
 		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
 			assignLoading(true)
 			assignError(null)
-			
+
 			// place a then on the promise
 			givenResult
 			.then((result) => {
@@ -70,9 +73,9 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 
 }
 
-export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefault }, forData = true) {
+export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefault }, forAsyncData = true) {
 	let properties
-	if (forData) {
+	if (forAsyncData) {
 		properties = this.$options.asyncData
 	}
 	else {
@@ -85,7 +88,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 		const defaultValue = prop.default || null
 		dataObj[propName] = defaultValue
 
-		if (!forData && prop.debounce !== null) {
+		if (!forAsyncData && prop.debounce !== null) {
 			// pending
 			dataObj[metaPending(propName)] = false
 		}
@@ -96,7 +99,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 		// default
 		dataObj[metaDefault(propName)] = prop.default || null
 	})
-		
+
 
 	return dataObj
 }
