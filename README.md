@@ -289,7 +289,8 @@ new Vue({
   asyncComputed: {
     searchResults: {
       get() {
-        return this.axios.get(`/search/${this.query}`)
+        if (this.includeInactiveResults) return this.axios.get(`/search/all/${this.query}`)
+        else return this.axios.get(`/search/${this.query}`)
       },
 
       // the normal, debounced watcher
