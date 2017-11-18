@@ -50,6 +50,9 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 			// place a then on the promise
 			givenResult
 			.then((result) => {
+				// TODO here we'd call any load more things
+				// we'd probably also have to branch based on whether we're resetting or not
+
 				assignValue(transformFunction(result))
 			})
 			.catch((error) => {

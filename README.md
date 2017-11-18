@@ -33,13 +33,12 @@ The basic useage looks like this.
 // main.js
 import Vue from 'vue'
 
-// simplest if you use axios integrated with vue
-// but you can use whatever http library you prefer
+// you can use whatever http library you prefer
 import axios from 'axios'
 import VueAxios from 'vue-axios'
 Vue.use(VueAxios, axios)
 
-Vue.axios.defaults.baseURL = 'http://api.example.com/v1/'
+Vue.axios.defaults.baseURL = '... whatever ...'
 
 import VueAsyncProperties from 'vue-async-properties'
 Vue.use(VueAsyncProperties)
@@ -199,7 +198,7 @@ new Vue({
         else return this.axios.get(`/articles/${this.articleId}`)
       },
       // this will be used if null or undefined
-      // are returned by the method or the request
+      // are returned either by the get method or by the request it returns
       // or if there's an error
       default: {
         title: "Default Title",
@@ -410,15 +409,59 @@ new Vue({
 
 <!-- ## Pagination and Load More
 
-Pagination is easy, you just need to incorporate your pagesize and offset into the calls
+Normal pagination is easy with this library, you just need to incorporate some sort of limit and offset into the requests you make.
 
-asyncData is eager by default and doesn't automatically update, so if you simply tie whatever your variables are into the method, it'll be fine
-asyncComputed
+With `asyncData`:
 
+```js
+new Vue({
+  data() {
+    return {
+      pageSize: 10,
+      pageNumber: 0
+    }
+  },
+  asyncData: {
+    posts() {
+      return this.axios.get(`/posts/?limit=${this.pageSize}&offset=${this.pageSize * this.pageNumber}`)
+    }
+  },
+  methods: {
+    goToPage(page) {
+      this.pageNumber = page
+      this.posts$refresh()
+    }
+  }
+})
+```
 
-Load more is more interesting, since you need to append new results into the old ones.
+... and with `asyncComputed`:
+
+```js
+new Vue({
+  data() {
+    return {
+      pageSize: 10,
+      pageNumber: 0
+    }
+  },
+  asyncComputed: {
+    posts: {
+      get() {
+        return this.axios.get(`/posts/?limit=${this.pageSize}&offset=${this.pageSize * this.pageNumber}`)
+      },
+      watchClosely: 'pageNumber'
+    }
+  }
+})
+```
+
+Doing a "load more" is interesting though, since you need to append new results onto the old ones.
 
 You can apply these options to both asyncData and asyncComputed, both would receive a `$more` handler. For both, this handler appends the results of the get function rather than replacing with. All the same old functionality remains with both, asyncData doesn't change unless you `$refresh` or `$more`, asyncComputed has all the same `watch` and `watchClosely` behavior.
+
+there are really
+
 
 ```js
 new Vue({
@@ -427,24 +470,71 @@ new Vue({
       pageSize: 5
     }
   },
+  // in the case of asyncData, everything's also quite simple
+  // they have to manually trigger everything, so we only reset when they call the $refresh method
+  // $more always concatenates
   asyncData: {
     posts: {
+      get() {
+        return this.axios.get(`/posts/${this.filter}/?offset=${this.posts.length}&limit=${this.pageSize}`)
+      },
+      loadMore: true
     }
   },
+
   asyncComputed: {
-    searchResults: {
-      get() {
-        // if you want to detect which page load this is you can manage a custom variable
-        // or simply detect how long the current collection is
-        return this.axios.get(`/search/?offset=${this.posts.length}&pageSize=${pageSize}`)
-      },
-      // this places a posts$more handler on the vm
-      watchClosely: 'pageSize'
+    posts: {
+      // so that's the secret here
+      // in order to reset, all we have to do is zero out whatever variable the caller is using to determine offset
+      // how that should be done depends on whether the existing collection should be wiped out before or after the request is completed
+      // the default should be after, since a jarring empty then fill cycle is no good
+
+      // that means we need a property that only reports the real length of the collection if we aren't about to reset
+
+      // having a handler that's given the results of the latest append
+
+
+      // here, no watchers will be set up, and any asyncComputed watcher will reset the collection
+      // only the posts$more will trigger the concatenation
       loadMore: true,
-      loadMore(transformedResults) {
-        // this receives whatever your transform does
-        this.posts.concat(transformedResults)
+
+
+      get() {
+        const pageSize = 10
+        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}`)
+        // return this.axios.get(`/posts/${this.filter}/?offset=${this.posts$offset}&limit=${pageSize}`)
+      },
+      watchClosely: 'filter',
+
+      // ?
+      getMore() {
+        const pageSize = 10
+        return this.axios.get(`/posts/${this.filter}/?offset=${this.posts.length}&limit=${pageSize}`)
       }
+
+      // here are the steps
+      // we set up the normal watchers
+      // when those watchers are triggered, we call a reset method
+
+      // that method switches on a reset flag, which is used in the computed that returns the current offset
+      // potentially we could accept a function that does whatever's necessary for the get function to know it's resetting
+      // that would mean the caller would be responsible for ensuring the get method has what it needs to reset properly
+
+      // after setting up for a reset, we call the get function, and process it's return accordingly
+      // we transform the result, and replace it
+      // then we could always
+
+
+      // when $more is called
+      // we call the get function as usual, which should have incorporated an offset variable
+      // we then transform the results as usual
+      // then we call the append method, which they can supply
+
+      // an interesting question is how to:
+      // detect if they've run out of results for them, or
+      // give them control to let them decide if they've run out of results
+
+
     }
   }
 })

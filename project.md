@@ -1,7 +1,11 @@
 
 
 [vue-async-properties]
-- allow error and transform to use component `this`
+- docs for pagination and load more
+
+- X allow error and transform to use component `this`
+- X write tests for error and transform
+
 
 async methods
 - spec
