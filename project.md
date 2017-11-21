@@ -1,10 +1,17 @@
-
+write some initial test cases
 
 [vue-async-properties]
-- docs for pagination and load more
+- X docs for pagination and load more
 
-- X allow error and transform to use component `this`
-- X write tests for error and transform
+- 0 write test cases
+features
+- works in shortcut mode
+- can give custom concat
+- can receive response from `$more` handler
+
+future features
+- has `$offset` variable that allows them to use only one route
+- therefore has other configurable methods to make sure that behaves properly
 
 
 async methods
@@ -22,8 +29,7 @@ features
 - X debouncing
 - X lazy/eager
 - X error handling
-- transform combine
-- error combine
+- X allow error and transform to use component `this`
+- X write tests for error and transform
 - merging
 - component-wide flags?
-- debouncing data?

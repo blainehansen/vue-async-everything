@@ -14,7 +14,7 @@ describe("defaults system", function() {
 
 			let anonFunction = (propName, metaName) => `${propName}---${metaName}`
 			expect(globalDefaults({
-				meta: anonFunction, 
+				meta: anonFunction,
 			}))
 				.property('meta')
 				.to.be.a('function')
@@ -26,7 +26,7 @@ describe("defaults system", function() {
 				.to.be.a('function')
 			expect(randomObj)
 				.property('random')
-				
+
 		})
 
 	})
@@ -46,7 +46,7 @@ describe("defaults system", function() {
 			let dataDefaultsObj = dataDefaults()
 			expect(dataDefaultsObj).property('transform').to.be.a('function')
 			expect(dataDefaultsObj).property('error').to.be.a('function')
-			
+
 
 			dataDefaultsObj = dataDefaults({})
 			expect(dataDefaultsObj).property('transform').to.be.a('function')
@@ -61,14 +61,14 @@ describe("defaults system", function() {
 			expect(dataDefaultsObj.transform({data: 'string'})).to.equal('string')
 			expect(dataDefaultsObj.error({stuff: 'things'})).to.equal('things')
 
-			
+
 			// passing null should make transform a "pass-along" function
 			sampleValidObj.transform = null
 			dataDefaultsObj = dataDefaults(sampleValidObj)
 			expect(dataDefaultsObj).property('transform').to.be.a('function')
 
 			expect(dataDefaultsObj.transform({result: 'result'})).to.deep.equal({result: 'result'})
-			
+
 
 			// asyncData doesn't support debounce, so no matter what we do it should be false
 			dataDefaultsObj = dataDefaults({debounce: 500})
@@ -82,6 +82,13 @@ describe("defaults system", function() {
 			dataDefaultsObj = dataDefaults((hello) => hello)
 			expect(dataDefaultsObj).property('get').to.be.a('function')
 
+			dataDefaultsObj = dataDefaults({more: (hello) => hello})
+			expect(dataDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(dataDefaultsObj).nested.property('more.concat').to.be.a('function')
+
+			dataDefaultsObj = dataDefaults({more: {get: (hello) => hello, concat: (hello) => hello}})
+			expect(dataDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(dataDefaultsObj).nested.property('more.concat').to.be.a('function')
 		})
 
 	})
@@ -158,13 +165,22 @@ describe("defaults system", function() {
 			expect(computedDefaultsObj.transform({data: 'string'})).to.equal('string')
 			expect(computedDefaultsObj.error({stuff: 'things'})).to.equal('things')
 
-			
+
 			// passing null should make transform a "pass-along" function
 			sampleValidObj.transform = null
 			computedDefaultsObj = computedDefaults(sampleValidObj)
 			expect(computedDefaultsObj).property('transform').to.be.a('function')
 
 			expect(computedDefaultsObj.transform({result: 'result'})).to.deep.equal({result: 'result'})
+
+
+			computedDefaultsObj = computedDefaults({more: (hello) => hello})
+			expect(computedDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(computedDefaultsObj).nested.property('more.concat').to.be.a('function')
+
+			computedDefaultsObj = computedDefaults({more: {get: (hello) => hello, concat: (hello) => hello}})
+			expect(computedDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(computedDefaultsObj).nested.property('more.concat').to.be.a('function')
 
 		})
 
@@ -182,7 +198,7 @@ describe("top level", function() {
 	it("doesn't error with various empty options", function() {
 
 		expect(() => { AsyncPropertiesPlugin.install(fakeVue) }).to.not.throw()
-		
+
 		expect(() => { AsyncPropertiesPlugin.install(fakeVue, {
 			meta: (propName, metaName) => `${propName}__${myCapitalize(metaName)}`,
 		}) }).to.not.throw()

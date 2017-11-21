@@ -1,4 +1,3 @@
-import { each } from 'lodash'
 import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
 import { globalDefaults, dataDefaults } from './defaults.js'
 
@@ -12,8 +11,9 @@ export default function AsyncDataMixinBuilder(options) {
 	const metaLoading = metaFunctionBuilder('loading', meta)
 	const metaError = metaFunctionBuilder('error', meta)
 	const metaDefault = metaFunctionBuilder('default', meta)
+	const metaMore = metaFunctionBuilder('more', meta)
 
-	const metas = { metaRefresh, metaLoading, metaError, metaDefault }
+	const metas = { metaLoading, metaError, metaDefault }
 
 	const dataGlobalDefaults = dataDefaults(options)
 
@@ -24,11 +24,16 @@ export default function AsyncDataMixinBuilder(options) {
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
-		each(properties, (prop, propName) => {
+		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)
 
 			methods[metaRefresh(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
-		})
+
+			// load more stuff
+			if (opt.more) {
+				methods[metaMore(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.more.get, opt.default, opt.transform, opt.error, opt.more.concat)
+			}
+		}
 
 	},
 
@@ -36,16 +41,16 @@ export default function AsyncDataMixinBuilder(options) {
 	beforeMount() {
 		const properties = this.$options.asyncData
 
-		each(properties, (prop, propName) => {
+		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)
 
 			if (!opt.lazy) {
 				this[metaRefresh(propName)]()
 			}
-		})
+		}
 
 	},
-	
+
 	data() {
 		return dataObjBuilder.call(this, metas)
 	}

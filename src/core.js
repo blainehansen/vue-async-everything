@@ -1,4 +1,4 @@
-import { each, isNil } from 'lodash'
+import { isNil } from 'lodash'
 
 
 export function metaFunctionBuilder(metaName, metaFunction) {
@@ -6,28 +6,47 @@ export function metaFunctionBuilder(metaName, metaFunction) {
 }
 
 
-export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler) {
+export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler, concatFunction = null) {
 	givenFunction = givenFunction.bind(this)
 	transformFunction = transformFunction.bind(this)
 	errorHandler = errorHandler.bind(this)
+	if (concatFunction) concatFunction = concatFunction.bind(this)
 
-	const assignValue = (result) => {
-		// TODO this needs to account for merging
+	const loadMoreVersion = !!concatFunction
 
-		if (!isNil(result)) this[propName] = result
-		else this[propName] = defaultValue
+	// create the assignValue function
+	// if this is a load more resolver, it has to use the concat function
+	let assignValueTemp
+	if (loadMoreVersion) {
+		assignValueTemp = (result) => {
+			if (!isNil(result)) this[propName] = concatFunction(this[propName], result)
+			else this[propName] = defaultValue
+		}
 	}
+	// otherwise it just overwrites
+	else {
+		assignValueTemp = (result) => {
+			// TODO this needs to account for merging
 
-	let assignPending
+			if (!isNil(result)) this[propName] = result
+			else this[propName] = defaultValue
+		}
+	}
+	const assignValue = assignValueTemp
+
+
+	let assignPendingTemp
 	if (metaPending) {
 		const pendingName = metaPending(propName)
-		assignPending = (val) => {
+		assignPendingTemp = (val) => {
 			this[pendingName] = val
 		}
 	}
 	else {
-		assignPending = (val) => {}
+		assignPendingTemp = (val) => {}
 	}
+	const assignPending = assignPendingTemp
+
 
 	const loadingName = metaLoading(propName)
 	const assignLoading = (val) => {
@@ -54,6 +73,7 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 				// we'd probably also have to branch based on whether we're resetting or not
 
 				assignValue(transformFunction(result))
+				return result
 			})
 			.catch((error) => {
 				// TODO check if they want it cleared on error
@@ -63,9 +83,19 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 				// this will trigger a save of default
 				assignValue(null)
 			})
-			.then(() => {
+			.then((result) => {
 				assignLoading(false)
+
+				if (!loadMoreVersion) {
+					this.$emit(`${propName}$reset`, result)
+				}
+
+				return result
 			})
+
+			// here's the real result that should bubble
+			// TODO only do this if loadingMore?
+			return givenResult
 
 		}
 		else {
@@ -86,7 +116,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 	}
 
 	let dataObj = {}
-	each(properties, (prop, propName) => {
+	for (const [propName, prop] of Object.entries(properties)) {
 		// the property itself
 		const defaultValue = prop.default || null
 		dataObj[propName] = defaultValue
@@ -101,8 +131,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 		dataObj[metaError(propName)] = null
 		// default
 		dataObj[metaDefault(propName)] = prop.default || null
-	})
-
+	}
 
 	return dataObj
 }

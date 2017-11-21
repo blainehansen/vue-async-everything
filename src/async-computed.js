@@ -1,4 +1,4 @@
-import { each, debounce } from 'lodash'
+import { debounce } from 'lodash'
 import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
 import { globalDefaults, computedDefaults } from './defaults.js'
 
@@ -15,8 +15,10 @@ export default function AsyncComputedMixinBuilder(options) {
 	const metaDefault = metaFunctionBuilder('default', meta)
 	const metaDebounce = metaFunctionBuilder('debounce', meta)
 	const metaResolver = metaFunctionBuilder('resolver', meta)
+	const metaMore = metaFunctionBuilder('more', meta)
 
-	const metas = { metaCancel, metaNow, metaPending, metaLoading, metaError, metaDefault, metaDebounce, metaResolver }
+
+	const metas = { metaPending, metaLoading, metaError, metaDefault }
 
 	const computedGlobalDefaults = computedDefaults(options)
 
@@ -27,7 +29,7 @@ export default function AsyncComputedMixinBuilder(options) {
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
-		each(properties, (prop, propName) => {
+		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
 			let resolverFunction = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
@@ -54,14 +56,20 @@ export default function AsyncComputedMixinBuilder(options) {
 			}
 
 			this[metaResolver(propName)] = resolverFunction
-		})
+
+			// load more stuff
+			if (opt.more) {
+				methods[metaMore(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.more.get, opt.default, opt.transform, opt.error, opt.more.concat)
+			}
+
+		}
 
 	},
 
 	beforeMount() {
 		const properties = this.$options.asyncComputed
 
-		each(properties, (prop, propName) => {
+		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
 			const resolverFunction = this[metaResolver(propName)]
@@ -92,6 +100,7 @@ export default function AsyncComputedMixinBuilder(options) {
 
 			}, { deep: true, immediate: eager })
 
+
 			if (shouldDebounce && opt.watchClosely) {
 				// if there's no debouncing set up, then watchClosely is ignored
 				this.$watch(opt.watchClosely, function() {
@@ -103,7 +112,7 @@ export default function AsyncComputedMixinBuilder(options) {
 				}, { deep: true, immediate: false })
 			}
 
-		})
+		}
 
 	},
 

@@ -1,13 +1,7 @@
 import { expect } from 'chai'
 import Vue from 'vue'
 import { delay } from 'bluebird'
-
-// for (let [key, value] of {key: 'value', thing: 'other'}) {
-// Object.prototype[Symbol.iterator] = function*() {
-// 	for(let key of Object.keys(this)) {
-// 		yield([ key, this[key] ])
-// 	}
-// }
+import { reduce } from 'lodash'
 
 
 import AsyncDataMixinBuilder from '../src/async-data.js'
@@ -33,25 +27,53 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 			return {
 				member: oneString,
 				triggerMember: false,
+				triggerCollectionMember: false,
 
 				transformCompound,
 				errorMessage,
 				otherErrorContainer: null,
+
 			}
 		},
+
 		asyncData: {
+
 			delayMember: {
 				get() {
 					return delay(5).return(this.member)
 				},
 				...asyncDataOptions
+			},
+
+			delayCollection: {
+				get() {
+					return delay(5).return([1, 2, 3])
+				},
+				more() {
+					return delay(5).return([4, 5, 6])
+				},
+				...asyncDataOptions
 			}
+
 		},
+
 		asyncComputed: {
+
 			upperMember: {
 				watch: 'member',
 				get() {
 					return delay(5).return(this.member.toUpperCase())
+				},
+				...asyncComputedOptions
+			},
+
+			twiceCollection: {
+				watch: 'triggerCollectionMember',
+				get() {
+					return delay(5).return([2, 4, 6])
+				},
+				more() {
+					return delay(5).return([8, 10, 12])
 				},
 				...asyncComputedOptions
 			}
@@ -85,9 +107,9 @@ const ErrorHandlerComponent = mixinAndExtend({
 	}
 })
 
-const NoDebounceComponent = mixinAndExtend(undefined, undefined, {debounce: null})
+const NoDebounceComponent = mixinAndExtend(undefined, undefined, { debounce: null })
 
-const WatchCloselyComponent = mixinAndExtend(undefined, undefined, {watchClosely: 'triggerMember'})
+const WatchCloselyComponent = mixinAndExtend(undefined, undefined, { watchClosely: 'triggerMember' })
 
 const TransformComponent = mixinAndExtend({
 	transform(result) {
@@ -95,6 +117,27 @@ const TransformComponent = mixinAndExtend({
 	}
 }, undefined, undefined)
 
+const LoadMoreComponent = mixinAndExtend(undefined, undefined, undefined)
+
+const LoadMoreAppendComponent = mixinAndExtend(undefined, {
+	more: {
+		get() {
+			return delay(5).return([4, 5, 6])
+		},
+		concat: (collection, newCollection) => {
+			return collection.concat([reduce(newCollection, (sum, n) => sum + n, 0)])
+		}
+	}
+}, {
+	more: {
+		get() {
+			return delay(5).return([8, 10, 12])
+		},
+		concat: (collection, newCollection) => {
+			return collection.concat([reduce(newCollection, (sum, n) => sum + n, 0)])
+		}
+	}
+})
 
 let c
 
@@ -170,6 +213,100 @@ describe("asyncData", function() {
 
 	// })
 
+	it("can perform load mores", async function() {
+		c = new LoadMoreComponent()
+
+		// after creation
+		expect(c).property('delayCollection$default').to.be.null
+		expect(c).property('delayCollection').to.eql(c.delayCollection$default)
+
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+		expect(c).property('delayCollection$refresh').to.be.a('function')
+		expect(c).property('delayCollection$more').to.be.a('function')
+
+		// after mount
+		c.$mount()
+		expect(c).property('delayCollection$loading').to.be.true
+
+		// can get a limited number first
+		// after load
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+
+		// can get more and append them
+		c.delayCollection$more()
+		expect(c).property('delayCollection$loading').to.be.true
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3, 4, 5, 6])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+		c.delayCollection$more()
+		expect(c).property('delayCollection$loading').to.be.true
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3, 4, 5, 6, 4, 5, 6])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+		// can refresh to a complete reset
+		c.delayCollection$refresh()
+		expect(c).property('delayCollection$loading').to.be.true
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+
+		// can get last response from $more
+		let response = await c.delayCollection$more()
+
+		expect(response).to.be.an('array').and.eql([4, 5, 6])
+
+		expect(c).property('delayCollection').to.eql([1, 2, 3, 4, 5, 6])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+
+		c = new LoadMoreAppendComponent()
+
+		c.$mount()
+
+		// can do custom appends
+		expect(c).property('delayCollection$loading').to.be.true
+
+		// can get a limited number first
+		// after load
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+
+		// can get more and append them
+		c.delayCollection$more()
+		expect(c).property('delayCollection$loading').to.be.true
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3, 15])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+		c.delayCollection$more()
+		expect(c).property('delayCollection$loading').to.be.true
+		await delay(10)
+		expect(c).property('delayCollection').to.eql([1, 2, 3, 15, 15])
+		expect(c).property('delayCollection$loading').to.be.false
+		expect(c).property('delayCollection$error').to.be.null
+
+		// triggers event on reset
+
+
+	})
+
 	it("transforms properly", async function() {
 		c = new TransformComponent()
 
@@ -186,7 +323,7 @@ describe("asyncData", function() {
 
 		c.$mount()
 		// after load
-		await delay(10)
+		await delay(12)
 
 		expect(c).property('delayMember$error').to.have.property('message').that.eql(oneString)
 		expect(c).property('otherErrorContainer').to.eql(errorMessage)
@@ -309,6 +446,114 @@ describe("asyncComputed", function() {
 
 		expect(c).property('upperMember').to.eql(oneString.toUpperCase())
 		expect(c).property('upperMember$error').to.be.null
+	})
+
+
+	it("can perform load mores", async function() {
+		c = new LoadMoreComponent()
+
+		// after creation
+		expect(c).property('twiceCollection$default').to.be.null
+		expect(c).property('twiceCollection').to.eql(c.twiceCollection$default)
+
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+		expect(c).property('twiceCollection$more').to.be.a('function')
+
+		// after mount
+		c.$mount()
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$pending').to.be.false
+
+		// can get a limited number first
+		// after load
+		c.triggerCollectionMember = true
+		await Vue.nextTick()
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$pending').to.be.true
+
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+
+		// can get more and append them
+		c.twiceCollection$more()
+		expect(c).property('twiceCollection$loading').to.be.true
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6, 8, 10, 12])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+		c.twiceCollection$more()
+		expect(c).property('twiceCollection$loading').to.be.true
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6, 8, 10, 12, 8, 10, 12])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+		// can refresh to a complete reset
+		c.triggerCollectionMember = false
+		await Vue.nextTick()
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+
+		// can get last response from $more
+		let response = await c.twiceCollection$more()
+
+		expect(response).to.be.an('array').and.eql([8, 10, 12])
+
+		expect(c).property('twiceCollection').to.eql([2, 4, 6, 8, 10, 12])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+
+		c = new LoadMoreAppendComponent()
+
+		c.$mount()
+
+
+		// can get a limited number first
+		// after load
+		c.triggerCollectionMember = true
+		await Vue.nextTick()
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+
+		// can get more and append them
+		c.twiceCollection$more()
+		expect(c).property('twiceCollection$loading').to.be.true
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6, 30])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+		c.twiceCollection$more()
+		expect(c).property('twiceCollection$loading').to.be.true
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6, 30, 30])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+		c.triggerCollectionMember = false
+		await Vue.nextTick()
+		await delay(12)
+		expect(c).property('twiceCollection').to.eql([2, 4, 6])
+		expect(c).property('twiceCollection$loading').to.be.false
+		expect(c).property('twiceCollection$error').to.be.null
+
+
+		// triggers event on reset
+
+
 	})
 
 	// it("default", function() {
