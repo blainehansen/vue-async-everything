@@ -6,7 +6,7 @@
 	"scripts": {
 		"build": "webpack -p",
 		"preversion": "npm test",
-		"version": "npm run build && git add lib",
+		"version": "npm run build",
 		"postversion": "git push origin master && git push origin master --tags && npm publish",
 		"test": "mocha  ./test/**/*.js"
 	},
