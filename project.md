@@ -3,11 +3,10 @@ write some initial test cases
 [vue-async-properties]
 - X docs for pagination and load more
 
-- 0 write test cases
+- X write test cases
 features
-- works in shortcut mode
-- can give custom concat
-- can receive response from `$more` handler
+- X can give custom concat
+- X can receive response from `$more` handler
 
 future features
 - has `$offset` variable that allows them to use only one route
