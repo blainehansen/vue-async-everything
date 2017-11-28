@@ -20,7 +20,8 @@ export default function AsyncDataMixinBuilder(options) {
 	return {
 
 	beforeCreate() {
-		let properties = this.$options.asyncData
+		let properties = this.$options.asyncData || {}
+
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
@@ -39,7 +40,7 @@ export default function AsyncDataMixinBuilder(options) {
 
 	// for all non lazy properties, call refresh methods
 	beforeMount() {
-		const properties = this.$options.asyncData
+		const properties = this.$options.asyncData || {}
 
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)

@@ -82,6 +82,21 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 }
 
 
+const NoneComponent = Vue.extend({
+	mixins: [
+		AsyncDataMixinBuilder({debounce: 5, transform: null}),
+		AsyncComputedMixinBuilder({debounce: 5, transform: null})
+	],
+	render(h) {
+		return h('div', [h('span', this.member)])
+	},
+	data() {
+		return {
+			member: oneString,
+		}
+	}
+})
+
 const BaseComponent = mixinAndExtend()
 
 const ValueNotPromiseComponent = mixinAndExtend(undefined,
@@ -140,6 +155,15 @@ const LoadMoreAppendComponent = mixinAndExtend(undefined, {
 })
 
 let c
+
+describe("component without either asyncData or asyncComputed", function() {
+	it ("doesn't error", function() {
+		c = new NoneComponent()
+
+		expect(() => { c.$mount() }).to.not.throw()
+
+	})
+})
 
 describe("asyncData", function() {
 
@@ -323,7 +347,7 @@ describe("asyncData", function() {
 
 		c.$mount()
 		// after load
-		await delay(12)
+		await delay(16)
 
 		expect(c).property('delayMember$error').to.have.property('message').that.eql(oneString)
 		expect(c).property('otherErrorContainer').to.eql(errorMessage)

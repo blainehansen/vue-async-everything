@@ -109,10 +109,10 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefault }, forAsyncData = true) {
 	let properties
 	if (forAsyncData) {
-		properties = this.$options.asyncData
+		properties = this.$options.asyncData || {}
 	}
 	else {
-		properties = this.$options.asyncComputed
+		properties = this.$options.asyncComputed || {}
 	}
 
 	let dataObj = {}

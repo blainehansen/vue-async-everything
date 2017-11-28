@@ -25,7 +25,8 @@ export default function AsyncComputedMixinBuilder(options) {
 	return {
 
 	beforeCreate() {
-		let properties = this.$options.asyncComputed
+		let properties = this.$options.asyncComputed || {}
+
 		this.$options.methods = this.$options.methods || {}
 		let methods = this.$options.methods
 
@@ -67,7 +68,7 @@ export default function AsyncComputedMixinBuilder(options) {
 	},
 
 	beforeMount() {
-		const properties = this.$options.asyncComputed
+		const properties = this.$options.asyncComputed || {}
 
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
