@@ -7,6 +7,10 @@ const AsyncPropertiesPlugin = {
 		const AsyncDataMixin = AsyncDataMixinBuilder(options)
 		const AsyncComputedMixin = AsyncComputedMixinBuilder(options)
 
+		const strategy = Vue.config.optionMergeStrategies.computed
+		Vue.config.optionMergeStrategies.asyncData = strategy
+		Vue.config.optionMergeStrategies.asyncComputed = strategy
+
 		Vue.mixin(AsyncDataMixin)
 		Vue.mixin(AsyncComputedMixin)
 	}

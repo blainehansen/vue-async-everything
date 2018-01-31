@@ -118,7 +118,7 @@ export default function AsyncComputedMixinBuilder(options) {
 	},
 
 	data() {
-		return dataObjBuilder.call(this, metas, false)
+		return dataObjBuilder(this.$options.asyncComputed, metas, true)
 	}
 
 	}

@@ -505,6 +505,7 @@ describe("asyncComputed", function() {
 
 		// can get more and append them
 		c.twiceCollection$more()
+		await Vue.nextTick()
 		expect(c).property('twiceCollection$loading').to.be.true
 		await delay(12)
 		expect(c).property('twiceCollection').to.eql([2, 4, 6, 8, 10, 12])
@@ -512,6 +513,7 @@ describe("asyncComputed", function() {
 		expect(c).property('twiceCollection$error').to.be.null
 
 		c.twiceCollection$more()
+		await Vue.nextTick()
 		expect(c).property('twiceCollection$loading').to.be.true
 		await delay(12)
 		expect(c).property('twiceCollection').to.eql([2, 4, 6, 8, 10, 12, 8, 10, 12])
@@ -529,6 +531,7 @@ describe("asyncComputed", function() {
 
 		// can get last response from $more
 		let response = await c.twiceCollection$more()
+		// await Vue.nextTick()
 
 		expect(response).to.be.an('array').and.eql([8, 10, 12])
 
@@ -554,6 +557,7 @@ describe("asyncComputed", function() {
 
 		// can get more and append them
 		c.twiceCollection$more()
+		await Vue.nextTick()
 		expect(c).property('twiceCollection$loading').to.be.true
 		await delay(12)
 		expect(c).property('twiceCollection').to.eql([2, 4, 6, 30])
@@ -561,6 +565,7 @@ describe("asyncComputed", function() {
 		expect(c).property('twiceCollection$error').to.be.null
 
 		c.twiceCollection$more()
+		await Vue.nextTick()
 		expect(c).property('twiceCollection$loading').to.be.true
 		await delay(12)
 		expect(c).property('twiceCollection').to.eql([2, 4, 6, 30, 30])

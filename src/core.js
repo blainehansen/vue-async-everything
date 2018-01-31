@@ -106,22 +106,14 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 
 }
 
-export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefault }, forAsyncData = true) {
-	let properties
-	if (forAsyncData) {
-		properties = this.$options.asyncData || {}
-	}
-	else {
-		properties = this.$options.asyncComputed || {}
-	}
-
+export function dataObjBuilder(properties = {}, { metaPending, metaLoading, metaError, metaDefault }, shouldDebounce = false) {
 	let dataObj = {}
 	for (const [propName, prop] of Object.entries(properties)) {
 		// the property itself
 		const defaultValue = prop.default || null
 		dataObj[propName] = defaultValue
 
-		if (!forAsyncData && prop.debounce !== null) {
+		if (!shouldDebounce && prop.debounce !== null) {
 			// pending
 			dataObj[metaPending(propName)] = false
 		}
@@ -130,7 +122,7 @@ export function dataObjBuilder({ metaPending, metaLoading, metaError, metaDefaul
 		// error
 		dataObj[metaError(propName)] = null
 		// default
-		dataObj[metaDefault(propName)] = prop.default || null
+		dataObj[metaDefault(propName)] = defaultValue
 	}
 
 	return dataObj

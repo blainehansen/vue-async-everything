@@ -53,6 +53,6 @@ export default function AsyncDataMixinBuilder(options) {
 	},
 
 	data() {
-		return dataObjBuilder.call(this, metas)
+		return dataObjBuilder(this.$options.asyncData, metas, false)
 	}
 }}

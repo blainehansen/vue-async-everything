@@ -1,12 +1,20 @@
-write some initial test cases
-
 [vue-async-properties]
-- X docs for pagination and load more
+async vuex
 
-- X write test cases
-features
-- X can give custom concat
-- X can receive response from `$more` handler
+asyncState
+- document interface
+-
+- test cases
+
+asyncGetters
+- document interface
+
+[AsyncVuex]
+- can have async computed (asyncGetter?)
+-- takes either a getter or mutations as watchers
+- can have async data (asyncState?)
+-- has a single barrier watcher to compute async datas
+-- can accept a function that calls a 'dispatchAll' method
 
 future features
 - has `$offset` variable that allows them to use only one route
