@@ -25,7 +25,6 @@ Has convenient features for:
 - request data transformation
 - error handling
 
-## Version `0.3.X`
 
 The basic useage looks like this.
 
@@ -289,8 +288,10 @@ new Vue({
   asyncComputed: {
     searchResults: {
       get() {
-        if (this.includeInactiveResults) return this.axios.get(`/search/all/${this.query}`)
-        else return this.axios.get(`/search/${this.query}`)
+        if (this.includeInactiveResults)
+          return this.axios.get(`/search/all/${this.query}`)
+        else
+          return this.axios.get(`/search/${this.query}`)
       },
 
       // the normal, debounced watcher
@@ -424,7 +425,12 @@ new Vue({
   },
   asyncData: {
     posts() {
-      return this.axios.get(`/posts/?limit=${this.pageSize}&offset=${this.pageSize * this.pageNumber}`)
+      return this.axios.get(`/posts`, {
+        params: {
+          limit: this.pageSize,
+          offset: this.pageSize * this.pageNumber,
+        }
+      })
     }
   },
   methods: {
@@ -449,7 +455,12 @@ new Vue({
   asyncComputed: {
     posts: {
       get() {
-        return this.axios.get(`/posts/?limit=${this.pageSize}&offset=${this.pageSize * this.pageNumber}`)
+        return this.axios.get(`/posts`, {
+          params: {
+            limit: this.pageSize,
+            offset: this.pageSize * this.pageNumber,
+          }
+        })
       },
       watchClosely: 'pageNumber'
     }
@@ -474,13 +485,22 @@ new Vue({
   asyncData: {
     posts: {
       get() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+          }
+        })
       },
 
       // this method will get results that will be appended to the old ones
       // it's triggered by the `posts$more` method
       more() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}&offset=${this.posts.length}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+            offset: this.posts.length,
+          }
+        })
       }
 
       // since sometimes the way you add new results to the property won't be a basic array concat
@@ -490,7 +510,12 @@ new Vue({
         concat: (posts, newPosts) => posts.concat(newPosts),
         get() {
           const pageSize = 5
-          return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}&offset=${this.posts.length}`)
+          return this.axios.get(`/posts/${this.filter}`, {
+            params: {
+              limit: pageSize,
+              offset: this.posts.length,
+            }
+          })
         }
       }
 
@@ -523,12 +548,21 @@ new Vue({
     posts: {
 
       get() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+          }
+        })
       },
       watch: 'filter',
 
       more() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}&offset=${this.posts.length}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+            offset: this.posts.length,
+          }
+        })
       }
 
     }
@@ -554,11 +588,20 @@ new Vue({
   asyncData: {
     posts: {
       get() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+          }
+        })
       },
 
       more() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}&offset=${this.posts.length}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+            offset: this.posts.length,
+          }
+        })
       }
     }
   },
@@ -591,21 +634,32 @@ new Vue({
   asyncData: {
     posts: {
       get() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+          }
+        })
       },
 
       more() {
-        return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}&offset=${this.posts.length}`)
+        return this.axios.get(`/posts/${this.filter}`, {
+          params: {
+            limit: pageSize,
+            offset: this.posts.length,
+          }
+        })
       }
     }
   },
 
   created() {
 
-    // whenever a watch or watchClosely resets the collection, it will $emit this event
+    // whenever a watch or watchClosely resets the collection,
+    // it will $emit this event
     this.$on('posts$reset', (resettingResponse) => {
 
-      // here you can perform whatever logic you need to with the resetttingResponse
+      // here you can perform whatever logic
+      // you need to with the resetttingResponse
 
       if (resettingResponse.data.length == 0) {
         this.noResultsReturned = true
@@ -626,7 +680,10 @@ You can set up error handling, either globally (maybe you have some sort of noti
 ```js
 Vue.use(VueAsyncProperties, {
   error(error) {
-    Notification.error({ title: "error", message: error.message })
+    Notification.error({
+      title: "error",
+      message: error.message,
+    })
   }
 })
 
