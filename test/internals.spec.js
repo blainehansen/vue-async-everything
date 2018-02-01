@@ -193,7 +193,7 @@ describe("defaults system", function() {
 import AsyncPropertiesPlugin from '../src/index.js'
 
 describe("top level", function() {
-	const fakeVue = { mixin(mixinObj) {} }
+	const fakeVue = { mixin(mixinObj) {}, config: { optionMergeStrategies: {} } }
 
 	it("doesn't error with various empty options", function() {
 

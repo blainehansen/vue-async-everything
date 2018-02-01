@@ -7,6 +7,7 @@ export function metaFunctionBuilder(metaName, metaFunction) {
 
 
 export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler, concatFunction = null) {
+
 	givenFunction = givenFunction.bind(this)
 	transformFunction = transformFunction.bind(this)
 	errorHandler = errorHandler.bind(this)
