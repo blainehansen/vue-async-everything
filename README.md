@@ -12,21 +12,71 @@
 
 ---
 
-```bash
-npm install --save vue-async-properties
+```js
+new Vue({
+  props: ['articleId'],
+
+  asyncData: {
+    article() {
+      return this.axios.get(`/articles/${this.articleId}`)
+    }
+  },
+
+  asyncComputed: {
+    searchResults: {
+      get() {
+        return this.axios.get(`/search/${this.query}`)
+      },
+      watch: 'query'
+      debounce: 500,
+    }
+  }
+})
+```
+```pug
+#article(
+  v-if="!article$error",
+  :class="{ 'loading': article$loading }")
+
+  h1 {{article.title}}
+
+  .content {{article.content}}
+
+#article(v-else)
+  | There was an error while loading the article!
+  | {{article$error.message}}
+
+button(@click="article$refresh")
+ | Refresh the Article
+
+
+input.search(v-model="query")
+span(v-if="searchResults$pending")
+  | Waiting for you to stop typing...
+span(v-if="searchResults$error")
+  | There was an error while making your search!
+  | {{searchResults$error.message}}
+
+#search-results(:class="{'loading': searchResults$loading}")
+  .search-result(v-for="result in results")
+    p {{result.text}}
 ```
 
 Has convenient features for:
 
 - loading, pending, and error flags
 - ability to refresh data
-- debouncing, with `cancel` and `now` abilities
+- debouncing, with `cancel` and `now` functions
 - defaults
-- request data transformation
+- response transformation
 - error handling
 
 
 The basic useage looks like this.
+
+```bash
+npm install --save vue-async-properties
+```
 
 ```js
 // main.js
@@ -68,26 +118,28 @@ new Vue({
   },
 })
 ```
+```pug
+//- in template (using the pug template language)
+#article(
+  v-if="!article$error",
+  :class="{ 'loading': article$loading }")
 
-```jade
-// in template (using the pug template language)
-button(@click="article$refresh") Refresh the Article
-
-#article(v-if="!article$error", :class="{ 'loading': article$loading }")
   h1 {{article.title}}
 
   .content {{article.content}}
 
-#article(v-else) There was an error while loading the article!
+#article(v-else)
+  | There was an error while loading the article!
   | {{article$error.message}}
+
+button(@click="article$refresh")
+  | Refresh the Article
 ```
 
 
 ## `asyncComputed`
 
 You have to provide a `get` function that returns a promise, and a `watch` parameter that's either a [string referring to a property on the vue instance, or a function that refers to the properties you want tracked](https://vuejs.org/v2/api/#vm-watch).
-
-Why is this necessary? Why not just pass a function that's reactively watched? Well, in order for Vue to reactively track a function, it has to invoke that function up front when you create the watcher. Since we have a function that performs an expensive async operation, which we also want to debounce, we can't really do that. The next version of this package will solve this problem.
 
 ```js
 // in component
@@ -118,12 +170,13 @@ new Vue({
   }
 })
 ```
-
-```jade
-// in template (using the pug template language)
-input(v-model="query")
-span(v-if="searchResults$pending") Waiting for you to stop typing...
-span(v-if="searchResults$error") There was an error while making your search!
+```pug
+//- in template (using the pug template language)
+input.search(v-model="query")
+span(v-if="searchResults$pending")
+  | Waiting for you to stop typing...
+span(v-if="searchResults$error")
+  | There was an error while making your search!
   | {{searchResults$error.message}}
 
 #search-results(:class="{'loading': searchResults$loading}")
@@ -131,10 +184,11 @@ span(v-if="searchResults$error") There was an error while making your search!
     p {{result.text}}
 ```
 
+You might be asking "Why is the `watch` necessary? Why not just pass a function that's reactively watched?" Well, in order for Vue to reactively track a function, it has to invoke that function up front when you create the watcher. Since we have a function that performs an expensive async operation, which we also want to debounce, we can't really do that.
 
 ## Meta Properties
 
-Properties to indicate the status of your requests, and methods to manage them, are automatically added to the component.
+Properties to show the status of your requests, and methods to manage them, are automatically added to the component.
 
 - `prop$loading`: if a request is currently in progress
 - `prop$error`: the error of the last request
@@ -149,64 +203,6 @@ Properties to indicate the status of your requests, and methods to manage them, 
 - `prop$pending`: if a request is *queued*, but not yet sent because of debouncing
 - `prop$cancel()`: cancel any debounced requests
 - `prop$now()`: immediately perform the latest debounced request
-
-
-### Different naming for Meta Properties
-
-The default naming strategy for the meta properties like `loading` and `pending` is `propName$metaName`. You may prefer a different naming strategy, and you can pass a function for a different one in the global config.
-
-```js
-Vue.use(VueAsyncProperties, {
-  // for "article" and "loading"
-  // "article__Loading"
-  meta: (propName, metaName) => `${propName}__${myCapitalize(metaName)}`,
-
-  // ... or ...
-  // "$loading_article"
-  meta: (propName, metaName) => '$' + metaName + '_' + propName,
-
-  // the default is:
-  meta: (propName, metaName) => `${propName}$${metaName}`,
-})
-```
-
-
-## Returning a Value Rather Than a Promise
-
-If you don't want a request to be performed, you can directly return a value instead of a promise.
-
-```js
-new Vue({
-  props: ['articleId'],
-  asyncData: {
-    article: {
-      get() {
-        // if you return null
-        // the default will be used
-        // and no request will be performed
-        if (!this.articleId) return null
-
-        // ... or ...
-
-        // doing this will directly set the value
-        // and no request will be performed
-        if (!this.articleId) return {
-          title: "No Article ID!",
-          content: "There's nothing there."
-        }
-        else return this.axios.get(`/articles/${this.articleId}`)
-      },
-      // this will be used if null or undefined
-      // are returned either by the get method or by the request it returns
-      // or if there's an error
-      default: {
-        title: "Default Title",
-        content: "Default Content"
-      }
-    }
-  }
-})
-```
 
 
 ## Debouncing
@@ -239,7 +235,8 @@ new Vue({
     searchResults: {
       get() { /* ... */ },
       watch: '...'
-      // this will be 1000 instead of the globally configured 500
+      // this will be 1000
+      // instead of the globally configured 500
       debounce: 1000
     }
   }
@@ -250,7 +247,7 @@ It is also allowed to pass `null` to debounce, to specify that no debounce shoul
 
 
 ```js
-// no components will use debounces
+// no components will debounce
 Vue.use(VueAsyncProperties, {
   debounce: null
 })
@@ -272,6 +269,7 @@ new Vue({
 ```
 
 This should only be done when the `asyncComputed` only watches values that aren't changed frequently by the user, otherwise a huge number of requests will be sent out.
+
 
 ### `watchClosely`
 
@@ -296,7 +294,8 @@ new Vue({
 
       // the normal, debounced watcher
       watch: 'query',
-      // whenever this changes,
+
+      // whenever includeInactiveResults changes,
       // the method will be invoked immediately
       // without any debouncing
       watchClosely: 'includeInactiveResults'
@@ -328,6 +327,47 @@ new Vue({
   }
 })
 ```
+
+
+## Returning a Value Rather Than a Promise
+
+If you don't want a request to be performed, you can directly return a value instead of a promise.
+
+```js
+new Vue({
+  props: ['articleId'],
+  asyncData: {
+    article: {
+      get() {
+        // if you return null
+        // the default will be used
+        // and no request will be performed
+        if (!this.articleId) return null
+
+        // ... or ...
+
+        // doing this will directly set the value
+        // and no request will be performed
+        if (!this.articleId) return {
+          title: "No Article ID!",
+          content: "There's nothing there."
+        }
+        else
+          return this.axios.get(`/articles/${this.articleId}`)
+      },
+      // this will be used if null or undefined
+      // are returned either by the get method
+      // or by the request it returns
+      // or if there's an error
+      default: {
+        title: "Default Title",
+        content: "Default Content"
+      }
+    }
+  }
+})
+```
+
 
 
 ## Lazy and Eager
@@ -468,6 +508,7 @@ new Vue({
 })
 ```
 
+
 ## Load More
 
 Doing a "load more" is interesting though, since you need to append new results onto the old ones.
@@ -503,8 +544,10 @@ new Vue({
         })
       }
 
-      // since sometimes the way you add new results to the property won't be a basic array concat
-      // you can pass a static concat method that returns a collection with the new results added to it
+      // since sometimes the way you add new results
+      // to the property won't be a basic array concat
+      // you can pass a static concat method that
+      // returns a collection with the new results added to it
       more: {
         // this is the default
         concat: (posts, newPosts) => posts.concat(newPosts),
@@ -608,12 +651,7 @@ new Vue({
   async moreHandler() {
     let lastResponse = await this.posts$more()
 
-    if (lastResponse.data.length < pageSize) {
-      this.noMoreResults = true
-    }
-    else {
-      this.noMoreResults = false
-    }
+    this.noMoreResults = lastResponse.data.length < pageSize
   }
 })
 ```
@@ -653,7 +691,6 @@ new Vue({
   },
 
   created() {
-
     // whenever a watch or watchClosely resets the collection,
     // it will $emit this event
     this.$on('posts$reset', (resettingResponse) => {
@@ -710,6 +747,30 @@ Vue.use(VueAsyncProperties, {
   }
 })
 ```
+
+
+### Different naming for Meta Properties
+
+The default naming strategy for the meta properties like `loading` and `pending` is `propName$metaName`. You may prefer a different naming strategy, and you can pass a function for a different one in the global config.
+
+```js
+Vue.use(VueAsyncProperties, {
+  // for "article" and "loading"
+  // "article__Loading"
+  meta: (propName, metaName) =>
+    `${propName}__${myCapitalize(metaName)}`,
+
+  // ... or ...
+  // "$loading_article"
+  meta: (propName, metaName) =>
+    '$' + metaName + '_' + propName,
+
+  // the default is:
+  meta: (propName, metaName) =>
+    `${propName}$${metaName}`,
+})
+```
+
 
 ## Contributing
 
