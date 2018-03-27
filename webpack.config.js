@@ -1,21 +1,4 @@
-// module.exports = {
-// 	entry: './src/index.js',
-// 	target: 'node',
-// 	output: {
-// 		path: './lib',
-// 		filename: 'index.js',
-// 		libraryTarget: 'umd'
-// 	},
-// 	module: {
-// 		loaders: [{
-// 			test: /\.js$/,
-// 			loader: 'babel',
-// 			exclude: /node_modules/
-// 		}]
-// 	}
-// }
-
-let config = {
+module.exports = {
 	entry: __dirname + '/src/index.js',
 	devtool: 'source-map',
 	output: {
@@ -43,5 +26,3 @@ let config = {
 		}
 	}
 }
-
-module.exports = config
