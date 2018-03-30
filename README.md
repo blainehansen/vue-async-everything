@@ -167,6 +167,7 @@ Vue.use(VueAsyncProperties, {
   meta: (propName, metaName) => '$' + metaName + '_' + propName,
 
   // the default is:
+  // "article$loading"
   meta: (propName, metaName) => `${propName}$${metaName}`,
 })
 ```
@@ -493,8 +494,8 @@ new Vue({
           return this.axios.get(`/posts/${this.filter}/?limit=${pageSize}&offset=${this.posts.length}`)
         }
       }
-
     }
+
   }
 })
 ```
@@ -541,7 +542,7 @@ All the other options like `transform`, `error`, `debounce`, will still work the
 
 ### `$more` Returns Last Response
 
-If you need to do some logic based on what the last load more request returned, you can wrap the `$more` method and get the last response the `$more` received.
+If you need to do some logic based on what the last load more request returned, you can wrap the `$more` method and get the last response the `$more` received. This returned value is the raw response, without the `transform` function called on it.
 
 
 ```js
@@ -563,14 +564,12 @@ new Vue({
     }
   },
   async moreHandler() {
+    // `$more` handles appending the results,
+    // so don't worry about doing that here
+    // this is just to allow you to inspect the last result
     let lastResponse = await this.posts$more()
 
-    if (lastResponse.data.length < pageSize) {
-      this.noMoreResults = true
-    }
-    else {
-      this.noMoreResults = false
-    }
+    this.noMoreResults = lastResponse.data.length < pageSize
   }
 })
 ```

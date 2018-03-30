@@ -688,6 +688,79 @@ describe("asyncComputed", function() {
 })
 
 
+const basicVuexOptions = {
+	state: {
+		name: 'first'
+	},
+
+	mutations: {
+		setName(state, name) {
+			state.name = name
+		}
+	}
+
+	asyncGuard: (state, getters) => state.name == 'second',
+
+	asyncState: {
+		delayName(state, getters)  {
+			return delay(5).return(state.name)
+		},
+
+		delayCollection: {
+			get(state, getters) {
+				return delay(5).return([1, 2, 3])
+			},
+
+			more(state, getters) {
+				return delay(5).return([4, 5, 6])
+			}
+		}
+	},
+
+	upperMember: {
+		watch: (state, getters) => state.name,
+		get(state, getters) {
+			return delay(5).return(state.name.toUpperCase())
+		},
+		// ...asyncComputedOptions
+	},
+
+	twiceCollection: {
+		watch: 'triggerCollectionMember',
+		get() {
+			return delay(5).return([2, 4, 6])
+		},
+		more() {
+			return delay(5).return([8, 10, 12])
+		},
+		...asyncComputedOptions
+	}
+}
+
+describe("vuex asyncState", function() {
+
+	it("loads immediately", async function() {
+		store = new AsyncVuex(basicVuexOptions)
+
+	})
+
+	it ("doesn't respond to mutations")
+
+	it ("waits for a guard")
+
+	it ("respects lazy")
+
+
+	// check state and delay and everything
+	// probably wait and check
+
+	// perform mutation
+
+	// check wait check
+	//
+})
+
+
 // const allGlobalConfig = {
 // 	meta: (propName, metaName) => `${propName}_${metaName}`,
 // 	error(e) {

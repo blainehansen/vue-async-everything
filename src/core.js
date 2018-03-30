@@ -6,18 +6,19 @@ export function metaFunctionBuilder(metaName, metaFunction) {
 }
 
 
-export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError }, givenFunction, defaultValue, transformFunction, errorHandler, concatFunction = null) {
+export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError, metaReset = null }, givenFunction, defaultValue, transformFunction, errorHandler, concatFunction = null) {
 	givenFunction = givenFunction.bind(this)
 	transformFunction = transformFunction.bind(this)
 	errorHandler = errorHandler.bind(this)
-	if (concatFunction) concatFunction = concatFunction.bind(this)
-
-	const loadMoreVersion = !!concatFunction
 
 	// create the assignValue function
 	// if this is a load more resolver, it has to use the concat function
 	let assignValueTemp
-	if (loadMoreVersion) {
+	let emitReset
+	if (concatFunction) {
+		concatFunction = concatFunction.bind(this)
+		const resetName = metaReset(propName)
+		emitReset = (result) => { this.$emit(resetName, result) }
 		assignValueTemp = (result) => {
 			if (!isNil(result)) this[propName] = concatFunction(this[propName], result)
 			else this[propName] = defaultValue
@@ -58,13 +59,19 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 		this[errorName] = val
 	}
 
-	return () => {
-		assignPending(false)
-		let givenResult = givenFunction()
+	return createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending, emitReset)
+}
+
+
+export function createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending = () => {}, emitReset = null) {
+
+	return (vuexContext) => {
+		assignPending(false, vuexContext)
+		assignError(null, vuexContext)
+		let givenResult = givenFunction(vuexContext)
 
 		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
-			assignLoading(true)
-			assignError(null)
+			assignLoading(true, vuexContext)
 
 			// place a then on the promise
 			givenResult
@@ -72,39 +79,38 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 				// TODO here we'd call any load more things
 				// we'd probably also have to branch based on whether we're resetting or not
 
-				assignValue(transformFunction(result))
+				assignValue(transformFunction(result, vuexContext), vuexContext)
 				return result
 			})
 			.catch((error) => {
-				// TODO check if they want it cleared on error
-				assignError(error)
-				errorHandler(error)
+				assignError(error, vuexContext)
+				errorHandler(error, vuexContext)
 
 				// this will trigger a save of default
-				assignValue(null)
+				// TODO check if they want it cleared on error
+				assignValue(null, vuexContext)
 			})
 			.then((result) => {
-				assignLoading(false)
+				assignLoading(false, vuexContext)
 
-				if (!loadMoreVersion) {
-					this.$emit(`${propName}$reset`, result)
+				if (emitReset) {
+					emitReset(result, vuexContext)
 				}
 
 				return result
 			})
 
-			// here's the real result that should bubble
-			// TODO only do this if loadingMore?
-			return givenResult
-
 		}
 		else {
-			assignError(null)
-			assignValue(givenResult)
+			assignValue(givenResult, vuexContext)
 		}
-	}
 
+		// here's the real result that should bubble
+		// whether promise or real, return it
+		return givenResult
+	}
 }
+
 
 export function dataObjBuilder(properties = {}, { metaPending, metaLoading, metaError, metaDefault }, shouldDebounce = false) {
 	let dataObj = {}

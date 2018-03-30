@@ -1,3 +1,67 @@
+```js
+// so, an action is created that calls the sub-action of fetching the promise, and then committing a mutation with the results
+// this action must return the overall promise so that it could be awaited on
+
+export default new AsyncVuex({
+	asyncStateGuard: (state, getters) => getters.userType == 'admin',
+
+	asyncState: {
+		// this will produce
+		// state values $loading, $error, $default
+		// actions $more, $refresh
+		// mutation $set, $loading$set
+		totalStoreCount: {
+			// you could have either a mutation that will be run
+			// but this isn't necessary, you can instead just create a default mutation that uses the property name
+			mutation(state, totalStoreCount) {
+				state.totalStoreCount = totalStoreCount
+			},
+			// an action to grab the remote results
+			get(state, getters) {
+				return api.getRollout()
+			},
+
+			error,
+			transform: (result, state, getters) =>
+			more,
+			resetMutation?,
+
+			lazy,
+			default: 'stuff',
+		}
+	},
+
+	asyncGetters: {
+		// state values $default, $error, $loading, $pending
+		// actions $more, $now, $cancel
+		thing: {
+			mutation() {
+
+			},
+
+			get() {
+
+			},
+
+			error,
+			transform,
+			more,
+
+			eager,
+			default: 'stuff',
+
+			// these will either be a function, or a string/list of strings representing either mutations or actions
+			watch:
+			watchClosely:
+		}
+	}
+})
+```
+
+
+
+
+
 
 ## Planned Features for the Future
 
@@ -91,7 +155,7 @@ new Vue({
 
 ## `asyncMethods`
 
-You may want to have methods that do something asynchronously, and you'd like the same conveniences as asyncData and asyncComputed. 
+You may want to have methods that do something asynchronously, and you'd like the same conveniences as asyncData and asyncComputed.
 
 ```js
 new Vue({
@@ -572,7 +636,7 @@ new Vue({
 Vue.use(VueAsyncProperties, {
 	errorHandler, // global error handler
 	emitEvents: true, // if you want to have all async components emit all events
-	globalFlags: true // default 
+	globalFlags: true // default
 })
 ```
 
@@ -605,14 +669,14 @@ Vue.use(VueAsyncProperties, {
 	errorHandler, // global error handler
 	emitEvents: true, // if you want to have all async components emit all events
 	meta(propName, metaName) {
-		// the meta properties can be named whatever you want, 
+		// the meta properties can be named whatever you want,
 		return `${propName}__${capitalize(metaName)}`
 	},
-	globalFlags: true // default 
+	globalFlags: true // default
 })
 
 
-// these global options and some helper functions can 
+// these global options and some helper functions can
 ```
 
 events could be emitted for things like loading and dones and errors
@@ -655,7 +719,7 @@ new Vue({
 			}
 
 
-			
+
 
 			validate(payload) {
 				// a function that ensures the outgoing thing is correct, possibly changes things

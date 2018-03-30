@@ -1,6 +1,6 @@
 import AsyncDataMixinBuilder from './async-data.js'
 import AsyncComputedMixinBuilder from './async-computed.js'
-
+import { globalDefaults } from './defaults.js'
 
 const AsyncPropertiesPlugin = {
 	install(Vue, options = {}) {
@@ -13,6 +13,12 @@ const AsyncPropertiesPlugin = {
 
 		Vue.mixin(AsyncDataMixin)
 		Vue.mixin(AsyncComputedMixin)
+
+		const meta = globalDefaults(options).meta
+		const dataGlobalDefaults = dataDefaults(options)
+		const computedGlobalDefaults = computedDefaults(options)
+
+		Vue.$asyncPropertiesOptions = { meta, dataGlobalDefaults, computedGlobalDefaults }
 	}
 }
 

@@ -4,8 +4,7 @@ import { globalDefaults, dataDefaults } from './defaults.js'
 
 export default function AsyncDataMixinBuilder(options) {
 
-	const globalOptions = globalDefaults(options)
-	const meta = globalOptions.meta
+	const meta = globalDefaults(options).meta
 
 	const metaRefresh = metaFunctionBuilder('refresh', meta)
 	const metaLoading = metaFunctionBuilder('loading', meta)

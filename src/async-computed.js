@@ -9,16 +9,17 @@ export default function AsyncComputedMixinBuilder(options) {
 
 	const metaCancel = metaFunctionBuilder('cancel', meta)
 	const metaNow = metaFunctionBuilder('now', meta)
-	const metaPending = metaFunctionBuilder('pending', meta)
 	const metaLoading = metaFunctionBuilder('loading', meta)
+	const metaPending = metaFunctionBuilder('pending', meta)
 	const metaError = metaFunctionBuilder('error', meta)
 	const metaDefault = metaFunctionBuilder('default', meta)
 	const metaDebounce = metaFunctionBuilder('debounce', meta)
 	const metaResolver = metaFunctionBuilder('resolver', meta)
 	const metaMore = metaFunctionBuilder('more', meta)
+	const metaReset = metaFunctionBuilder('reset', meta)
 
 
-	const metas = { metaPending, metaLoading, metaError, metaDefault }
+	const metas = { metaPending, metaLoading, metaError, metaDefault, metaReset }
 
 	const computedGlobalDefaults = computedDefaults(options)
 
@@ -89,21 +90,19 @@ export default function AsyncComputedMixinBuilder(options) {
 					hasRun = true
 					resolverFunction()
 				}
+				else if (shouldDebounce) {
+					this[metaPending(propName)] = true
+					debouncedResolverFunction()
+				}
 				else {
-					if (shouldDebounce) {
-						this[metaPending(propName)] = true
-						debouncedResolverFunction()
-					}
-					else {
-						resolverFunction()
-					}
+					resolverFunction()
 				}
 
 			}, { deep: true, immediate: eager })
 
 
+			// if there's no debouncing set up, then watchClosely is ignored
 			if (shouldDebounce && opt.watchClosely) {
-				// if there's no debouncing set up, then watchClosely is ignored
 				this.$watch(opt.watchClosely, function() {
 
 					this[metaPending(propName)] = false
@@ -112,9 +111,7 @@ export default function AsyncComputedMixinBuilder(options) {
 
 				}, { deep: true, immediate: false })
 			}
-
 		}
-
 	},
 
 	data() {
