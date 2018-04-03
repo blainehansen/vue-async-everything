@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import Vue from 'vue'
 import { delay } from 'bluebird'
-import { reduce } from 'lodash'
+import { reduce, cloneDeep } from 'lodash'
 
 
 import AsyncDataMixinBuilder from '../src/async-data.js'
@@ -688,18 +688,22 @@ describe("asyncComputed", function() {
 })
 
 
+const firstName = 'first'
+const secondName = 'second'
 const basicVuexOptions = {
 	state: {
-		name: 'first'
+		name: firstName,
+		triggerMember: true,
+		triggerCollectionMember: true,
 	},
 
 	mutations: {
 		setName(state, name) {
 			state.name = name
 		}
-	}
+	},
 
-	asyncGuard: (state, getters) => state.name == 'second',
+	// asyncGuard: (state, getters) => state.name == secondName,
 
 	asyncState: {
 		delayName(state, getters)  {
@@ -717,38 +721,57 @@ const basicVuexOptions = {
 		}
 	},
 
-	upperMember: {
-		watch: (state, getters) => state.name,
-		get(state, getters) {
-			return delay(5).return(state.name.toUpperCase())
+	asyncGetters: {
+		upperMember: {
+			watch: (state, getters) => state.name,
+			get(state, getters) {
+				return delay(5).return(state.name.toUpperCase())
+			},
+			// ...asyncComputedOptions
 		},
-		// ...asyncComputedOptions
-	},
 
-	twiceCollection: {
-		watch: 'triggerCollectionMember',
-		get() {
-			return delay(5).return([2, 4, 6])
-		},
-		more() {
-			return delay(5).return([8, 10, 12])
-		},
-		...asyncComputedOptions
+		twiceCollection: {
+			watch: (state, getters) => state.triggerCollectionMember,
+			get() {
+				return delay(5).return([2, 4, 6])
+			},
+			more() {
+				return delay(5).return([8, 10, 12])
+			},
+			// ...asyncComputedOptions
+		}
 	}
 }
+
+// import { createLocalVue } from '@vue/test-utils'
+import VueAsyncProperties from '../src/index.js'
+import AsyncVuex from '../src/vuex.js'
 
 describe("vuex asyncState", function() {
 
 	it("loads immediately", async function() {
-		store = new AsyncVuex(basicVuexOptions)
+		// const localVue = createLocalVue()
+		Vue.use(VueAsyncProperties)
+		Vue.use(AsyncVuex)
+
+		const store = new AsyncVuex.Store(cloneDeep(basicVuexOptions))
+
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.delayName).to.eql(null)
+		expect(store.state.delayName$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(10)
+
+		expect(store.state.delayName).to.eql(firstName)
+		expect(store.state.delayName$loading).to.eql(false)
 
 	})
 
-	it ("doesn't respond to mutations")
+	// it ("doesn't respond to mutations")
 
-	it ("waits for a guard")
+	// it ("waits for a guard")
 
-	it ("respects lazy")
+	// it ("respects lazy")
 
 
 	// check state and delay and everything

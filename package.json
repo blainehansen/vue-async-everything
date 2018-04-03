@@ -8,7 +8,7 @@
 		"preversion": "npm test",
 		"version": "npm run build",
 		"postversion": "git push origin master && git push origin master --tags && npm publish",
-		"test": "mocha  ./test/**/*.js"
+		"test": "mocha --require test/setup.js ./test/**/*.js"
 	},
 	"keywords": [
 		"vue",
@@ -47,6 +47,7 @@
 		"lodash": "^4.17.4"
 	},
 	"devDependencies": {
+		"@vue/test-utils": "^1.0.0-beta.13",
 		"babel-core": "^6.26.0",
 		"babel-loader": "^7.1.2",
 		"babel-plugin-add-module-exports": "^0.2.1",
@@ -56,8 +57,12 @@
 		"babel-preset-stage-0": "^6.24.1",
 		"bluebird": "^3.5.0",
 		"chai": "^4.1.1",
+		"jsdom": "^11.7.0",
+		"jsdom-global": "^3.0.2",
 		"mocha": "^3.5.0",
-		"vue": "^2.5.9",
+		"vue": "^2.5.16",
+		"vue-template-compiler": "^2.5.16",
+		"vuex": "^3.0.1",
 		"webpack": "^3.5.5"
 	}
 }

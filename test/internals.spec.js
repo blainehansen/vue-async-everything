@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { globalDefaults, dataDefaults, computedDefaults } from '../src/defaults.js'
+import { globalDefaults, dataDefaults, computedDefaults, vuexStateDefaults, vuexGetterDefaults } from '../src/defaults.js'
 
 describe("defaults system", function() {
 
@@ -182,6 +182,73 @@ describe("defaults system", function() {
 			expect(computedDefaultsObj).nested.property('more.get').to.be.a('function')
 			expect(computedDefaultsObj).nested.property('more.concat').to.be.a('function')
 
+		})
+
+	})
+
+	describe("vuexStateDefaults", function() {
+
+		it("returns correct values based on inputs", function() {
+			let vuexStateDefaultsObj = vuexStateDefaults({more: (hello) => hello})
+			expect(vuexStateDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			vuexStateDefaultsObj = vuexStateDefaults({more: {get: (hello) => hello, concat: (hello) => hello}})
+			expect(vuexStateDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			vuexStateDefaultsObj = vuexStateDefaults({more: {get: (hello) => hello, reset: (state, lastResult) => {} }})
+			expect(vuexStateDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			vuexStateDefaultsObj = vuexStateDefaults({more: {get: (hello) => hello, concat: (hello) => hello, reset: (state, lastResult) => lastResult }})
+			expect(vuexStateDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexStateDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			expect(vuexStateDefaultsObj.more.reset({}, 'result')).to.eql('result')
+		})
+
+	})
+
+
+	describe("vuexGetterDefaults", function() {
+
+		it("returns correct values based on inputs", function() {
+			let vuexGetterDefaultsObj = vuexGetterDefaults()
+			expect(vuexGetterDefaultsObj)
+				.property('transform').to.be.a('function')
+			expect(vuexGetterDefaultsObj)
+				.property('error').to.be.a('function')
+			expect(vuexGetterDefaultsObj)
+				.property('eager').to.be.false
+			expect(vuexGetterDefaultsObj)
+				.property('debounce').to.be.an('object').that.deep.equal({wait: 1000, options: {}})
+
+			vuexGetterDefaultsObj = vuexGetterDefaults({more: (hello) => hello})
+			expect(vuexGetterDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			vuexGetterDefaultsObj = vuexGetterDefaults({more: {get: (hello) => hello, concat: (hello) => hello}})
+			expect(vuexGetterDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			vuexGetterDefaultsObj = vuexGetterDefaults({more: {get: (hello) => hello, reset: (state, lastResult) => {} }})
+			expect(vuexGetterDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			vuexGetterDefaultsObj = vuexGetterDefaults({more: {get: (hello) => hello, concat: (hello) => hello, reset: (state, lastResult) => lastResult }})
+			expect(vuexGetterDefaultsObj).nested.property('more.get').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.concat').to.be.a('function')
+			expect(vuexGetterDefaultsObj).nested.property('more.reset').to.be.a('function')
+
+			expect(vuexGetterDefaultsObj.more.reset({}, 'result')).to.eql('result')
 		})
 
 	})

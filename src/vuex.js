@@ -1,23 +1,91 @@
-import { isNil } from 'lodash'
-
-import { createResolverFunction, metaFunctionBuilder, dataObjBuilder } from './core.js'
-import { globalDefaults, dataDefaults, computedDefaults } from './defaults.js'
+import { isNil, createResolverFunction, metaFunctionBuilder, dataObjBuilder } from './core.js'
+import { globalDefaults, vuexStateDefaults, vuexGetterDefaults } from './defaults.js'
 
 
 import Vue from 'vue'
 import Vuex from 'vuex'
+import { debounce } from 'lodash'
 
-function doubleMetaFunctionBuilder(metaFunction, firstMetaName, ...metaNames) {
-	let builtMetaName = firstMetaName
-	for (metaName of metaNames) {
-		builtMetaName = metaFunction(builtMetaName, metaName)
+
+
+function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading, metaLoadingSet, metaPending = null, metaPendingSet = null, metaError, metaErrorHandler, metaErrorSet, metaMore = null, metaReset = null }) {
+
+	const givenFunction = opt.get
+	const defaultValue = opt.default
+
+	// transform is static and not a mutation
+	const transformFunction = (result, { state, getters }) => opt.transform(result, state, getters)
+
+	const loadingName = metaLoading(propName)
+	const loadingSetName = metaLoadingSet(propName)
+	mutations[loadingSetName] = (state, val) => {
+		state[loadingName] = val
+	}
+	const assignLoading = (val, { commit }) => {
+		commit(loadingSetName, val)
 	}
 
-	return (propName) => metaFunction(propName, builtMetaName)
+	let assignPendingTemp
+	if (metaPending) {
+		const pendingName = metaPending(propName)
+		const pendingSetName = metaPendingSet(propName)
+		mutations[pendingSetName] = (state, val) => {
+			state[pendingName] = val
+		}
+		assignPendingTemp = (val, { commit }) => {
+			commit(pendingSetName, val)
+		}
+	}
+	const assignPending = assignPendingTemp
+
+	const errorHandlerName = metaErrorHandler(propName)
+	mutations[errorHandlerName] = opt.error
+	// errorHandler is a mutation
+	const errorHandler = (error, { commit }) => commit(errorHandlerName, error)
+
+	const errorName = metaError(propName)
+	const errorSetName = metaErrorSet(propName)
+	mutations[errorSetName] = (state, val) => {
+		state[errorName] = val
+	}
+	const assignError = (val, { commit }) => {
+		commit(errorSetName, val)
+	}
+
+	const setName = metaSet(propName)
+	const defaultMutation = (state, val) => {
+		state[propName] = val
+	}
+	mutations[setName] = opt.mutation || defaultMutation
+	if (metaMore) {
+		const concatFunction = opt.more.concat
+		const resetName = metaReset(propName)
+
+		mutations[resetName] = opt.more.reset
+		const emitReset = (val, { commit }) => {
+			commit(resetName, val)
+		}
+
+		const assignValue = (result, { state, commit }) => {
+			if (!isNil(result)) commit(setName, concatFunction(state[propName], result))
+			else commit(setName, defaultValue)
+		}
+
+		actions[metaMore(propName)] = createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending, emitReset)
+	}
+	const assignValue = (result, { commit }) => {
+		console.log('result', result)
+		console.log('commit', commit)
+		if (!isNil(result)) commit(setName, result)
+		else commit(setName, defaultValue)
+	}
+
+	return createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending)
 }
 
-export default class AsyncVuex extends Vuex.Store {
-	constructor({ asyncState = {}, asyncGetters = {}, asyncStateGuard, asyncStateStartup, state = {}, mutations = {}, actions = {}, modules = {}, plugins = [], ...options }) {
+
+class AsyncVuex extends Vuex.Store {
+	constructor({ asyncState = {}, asyncGetters = {}, asyncGuard, asyncStateStartup, state = {}, getters = {}, mutations = {}, actions = {}, modules, plugins = [], ...options }) {
 
 		const { meta, dataGlobalDefaults, computedGlobalDefaults } = Vue.$asyncPropertiesOptions
 		const metaRefresh = metaFunctionBuilder('refresh', meta)
@@ -31,8 +99,14 @@ export default class AsyncVuex extends Vuex.Store {
 		const metaReset = metaFunctionBuilder('reset', meta)
 		const metaSet = metaFunctionBuilder('set', meta)
 
-		const metaLoadingSet = doubleMetaFunctionBuilder(meta, 'loading', 'set')
-		const metaErrorSet = doubleMetaFunctionBuilder(meta, 'error', 'set')
+		const metaLoadingSet = metaFunctionBuilder('loadingSet', meta)
+		const metaPendingSet = metaFunctionBuilder('pendingSet', meta)
+		const metaErrorSet = metaFunctionBuilder('errorSet', meta)
+		const metaErrorHandler = metaFunctionBuilder('errorHandler', meta)
+		const metaDispatch = metaFunctionBuilder('dispatch', meta)
+		const metaDebounceDispatch = metaFunctionBuilder('debounceDispatch', meta)
+
+		let metas
 
 		state = {
 			...state,
@@ -41,58 +115,21 @@ export default class AsyncVuex extends Vuex.Store {
 		}
 
 
-		const potentiallyImmediateDispatches = []
+		const immediateDispatches = []
 
+		metas = { metaLoading, metaLoadingSet, metaError, metaErrorHandler, metaErrorSet, metaSet }
 		for (const [propName, prop] of Object.entries(asyncState)) {
-			// TODO probably have a vuex version for any differences
-			const opt = dataDefaults(prop, dataGlobalDefaults)
-			const defaultValue = opt.default
+			const opt = vuexStateDefaults(prop, dataGlobalDefaults)
 
-			// the given function shouldn't be allowed to mutate
-			const givenFunction = opt.get
-			// certainly the transform should just be static and not allowed to mutate
-			const transformFunction = (result, { state, getters }) => opt.transform(result, state, getters)
-			// should the error handler be a mutation? then it could post error information to other parts of the store
-			const errorHandler = (result, { state, getters }) => opt.error(result, state, getters)
-
-			const loadingName = metaLoadingSet(propName)
-			const assignLoading = (val, { commit }) => {
-				commit(loadingName), val)
-			}
-			const errorName = metaErrorSet(propName)
-			const assignError = (val, { commit }) => {
-				commit(errorName, val)
-			}
-
-			// if they've provided a mutation of their own, then that takes precedence
-			const setName = metaSet(propName)
-			let assignValueTemp
 			if (opt.more) {
-				const resetName = metaReset(propName)
-				const emitReset = (val, { commit }) => {
-					commit(resetName, val)
-				}
-
-				const concatFunction = opt.more.concat
-				const assignValue = assignValueTemp = (result, { state, commit }) => {
-					if (!isNil(result)) commit(setName, concatFunction(state[propName], result))
-					else commit(setName, defaultValue)
-				}
-
-				actions[metaMore(propName)] = createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, undefined, emitReset)
+				metas.metaReset = metaReset
+				metas.metaMore = metaMore
 			}
-			else {
-				assignValueTemp = (result, { commit }) => {
-					if (!isNil(result)) commit(setName, result)
-					else commit(setName, defaultValue)
-				}
-			}
-			const assignValue = assignValueTemp
 
 			const actionName = metaRefresh(propName)
-			actions[actionName] = createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError)
-			// this will handle calling it the second it's possible
-			potentiallyImmediateDispatches.push([actionName, opt.lazy])
+			actions[actionName] = vuexResolver(opt, propName, mutations, actions, metas)
+
+			if (!opt.lazy) immediateDispatches.push(actionName)
 		}
 
 
@@ -100,108 +137,104 @@ export default class AsyncVuex extends Vuex.Store {
 		const subscribeMutationNames = {}
 		const subscribeActionNames = {}
 
+		metas = { metaPending, metaPendingSet, metaLoading, metaLoadingSet, metaError, metaErrorHandler, metaErrorSet, metaSet }
 		for (const [propName, prop] of Object.entries(asyncGetters)) {
-			const opt = computedDefaults(prop, computedGlobalDefaults)
+			const opt = vuexGetterDefaults(prop, computedGlobalDefaults)
 
-			actions[metaNow(propName)] = null
-			actions[metaCancel(propName)] = null
-
-			potentiallyImmediateDispatches.push([metaNow(propName), !opt.eager])
-
-			const shouldDebounce = !(opt.debounce === false || !opt.watch)
-			const defaultWatch = opt.watch || opt.watchClosely
-
-			// if either watch is a function, we push it to watches
-			// if either is a string or list of strings, we
-
-			if (defaultWatch instanceof Function) {
-				watches.push([defaultWatch, shouldDebounce && opt.watch ? debouncedResolverFunction : resolverFunction])
+			if (opt.more) {
+				metas.metaReset = metaReset
+				metas.metaMore = metaMore
 			}
 
-			if (shouldDebounce && opt.watchClosely) {
-				watches.push([opt.watchClosely, resolverFunction])
+			const actionName = metaDispatch(propName)
+			actions[actionName] = vuexResolver(opt, propName, mutations, actions, metas)
+
+			if (opt.eager) immediateDispatches.push(actionName)
+
+			const debouncedResolverFunction = debounce(
+				(store) => store.dispatch(actionName),
+				opt.debounce.wait, opt.debounce.options
+			)
+
+			const pendingSetName = metaPendingSet(propName)
+			actions[metaNow(propName)] = (vuexContext) => {
+				vuexContext.commit(pendingSetName, false)
+				debouncedResolverFunction.flush()
+			}
+			actions[metaCancel(propName)] = (vuexContext) => {
+				vuexContext.commit(pendingSetName, false)
+				debouncedResolverFunction.cancel()
 			}
 
 
-			// there are potentially six different watches/subscribes we could set up
-			// watch and watchClosely for getters, mutations, and actions
+			// basically, the watch and the watchClosely have to have the same thing done with them, where the watch has debouncing and the watchClosely doesn't
+			// if the watch param is a function, it's added to the watches
+			// if it's a string or an array of strings, it's added to the response function manifests
+			// those response functions will take the store, and then dispatch an action
 
-			if (defaultWatch instanceof Function) {
-				let hasRun = false
-				store.watch(defaultWatch, function() {
+			function addWatch(watch, shouldDebounce) {
+				if (!watch) return
 
-					if (eager && !hasRun) {
-						hasRun = true
-						resolverFunction()
+				const responseFunction = shouldDebounce
+					? (store) => {
+						store.commit(pendingSetName, true)
+						return debouncedResolverFunction(store)
 					}
-					else {
-						if (shouldDebounce) {
-							store.commit(metaPendingMutation(propName), true)
-							debouncedResolverFunction()
-						}
-						else {
-							resolverFunction()
-						}
+					: (store) => store.dispatch(actionName)
+
+				const watchType = typeof watch
+				if (watchType == 'function') {
+					watches.push([watch, responseFunction])
+				}
+				else {
+					if (watchType == 'string') watch = [watch]
+					else if (!(watch instanceof Array)) throw Error(`Watches must be a function, a string, or an array of strings: ${watch}`)
+
+					for (const methodName of watch) {
+						// TODO this will have huge problems with namespaced actions and mutations. right now this will only work with actions and mutations in the current module
+						if (actions.hasOwnProperty(methodName)) subscribeActionNames[methodName] = responseFunction
+						else if (mutations.hasOwnProperty(methodName)) subscribeMutationNames[methodName] = responseFunction
+						else throw Error(`A watch or watchClosely was provided that couldn't be mapped to a mutation or action: ${methodName}`)
 					}
-
-				}, { deep: true, immediate: eager })
-			}
-			else {
-				if (typeof defaultWatch == 'string') defaultWatch = [defaultWatch]
-				else if (!(defaultWatch instanceof Array)) throw Error(`Watches must be a function, a string, or an array of strings: ${defaultWatch}`)
-
-				const actionNames = []
-				const mutationNames = []
-
-				for (const methodName of defaultWatch) {
-					if (actions.hasOwnProperty(methodName)) subscribeActionNames[methodName] = resolverFunction
-					else if (mutations.hasOwnProperty(methodName)) subscribeMutationNames[methodName] = resolverFunction
-					else throw Error(`A watch or watchClosely was provided that couldn't be mapped to a mutation or action: ${methodName}`)
 				}
 			}
 
-			// we probably have to do something with opt.more here
+			addWatch(opt.watch, true)
+			addWatch(opt.watchClosely, false)
 		}
 
 
 		function asyncPlugin(store) {
 			function runAllDispatches() {
-				for (const [actionName, lazy] of potentiallyImmediateDispatches) {
-					if (!lazy) store.dispatch(actionName)
+				for (const actionName of immediateDispatches) {
+					store.dispatch(actionName)
 				}
 			}
 
-			// if there's a guard
-			if (!isNil(asyncGuard)) {
+			if (asyncGuard) {
 				let hasRun = false
 				store.watch(asyncGuard, (guardResults) => {
 					if (guardResults && !hasRun) {
 						runAllDispatches()
 						hasRun = true
 					}
-				}, { immediate: true })
+				}, { deep: true, immediate: true })
 			}
-			else {
-				runAllDispatches()
-			}
+			else runAllDispatches()
 
 
-			for (const [watch, handler] of watches) {
-				store.watch(watch, handler, { deep: true, immediate: false })
+			for (const [watch, responseFunction] of watches) {
+				store.watch(watch, () => responseFunction(store), { deep: true, immediate: false })
 			}
 
-			store.subscribe((mutation, state) => {
-				const responseFunction = subscribeMutationNames[mutation]
-				if (responseFunction) {
-					responseFunction(store)
-				}
+			store.subscribe((mutationName, state) => {
+				const responseFunction = subscribeMutationNames[mutationName]
+				if (responseFunction) responseFunction(store)
 			})
 
-			store.subscribeAction((action, state) => {
-				const responseFunction = subscribeActionNames[action]
-				if (responseFunction) {
-					responseFunction(store)
-				}
+			store.subscribeAction((actionName, state) => {
+				const responseFunction = subscribeActionNames[actionName]
+				if (responseFunction) responseFunction(store)
 			})
 		}
 
@@ -211,3 +244,6 @@ export default class AsyncVuex extends Vuex.Store {
 		super({ state, mutations, getters, actions, plugins, modules, ...options })
 	}
 }
+
+Vuex.Store = AsyncVuex
+export default Vuex

@@ -1,12 +1,13 @@
-import { isNil } from 'lodash'
-
+export function isNil(value) {
+	return value === null || value === undefined
+}
 
 export function metaFunctionBuilder(metaName, metaFunction) {
 	return (propName) => metaFunction(propName, metaName)
 }
 
 
-export function resolverForGivenFunction(propName, { metaPending, metaLoading, metaError, metaReset = null }, givenFunction, defaultValue, transformFunction, errorHandler, concatFunction = null) {
+export function resolverForGivenFunction(propName, { metaPending = null, metaLoading, metaError, metaReset = null }, givenFunction, defaultValue, transformFunction, errorHandler, concatFunction = null) {
 	givenFunction = givenFunction.bind(this)
 	transformFunction = transformFunction.bind(this)
 	errorHandler = errorHandler.bind(this)
@@ -43,9 +44,6 @@ export function resolverForGivenFunction(propName, { metaPending, metaLoading, m
 			this[pendingName] = val
 		}
 	}
-	else {
-		assignPendingTemp = (val) => {}
-	}
 	const assignPending = assignPendingTemp
 
 
@@ -76,13 +74,14 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 			// place a then on the promise
 			givenResult
 			.then((result) => {
-				// TODO here we'd call any load more things
+				console.log('promise is successful')
 				// we'd probably also have to branch based on whether we're resetting or not
 
 				assignValue(transformFunction(result, vuexContext), vuexContext)
 				return result
 			})
 			.catch((error) => {
+				console.log('catch is called')
 				assignError(error, vuexContext)
 				errorHandler(error, vuexContext)
 

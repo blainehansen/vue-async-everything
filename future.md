@@ -113,44 +113,6 @@ new Vue({
 })
 ```
 
-The normal behavior when a request is performed and returns a non-empty value is to ignore the default and set the value as the result of the request. But you might want the result to have its empty fields filled in by those values on the default. To do this, set the `merge` option.
-
-```js
-new Vue({
-	asyncData: {
-		article: {
-			get() { /* ... */ },
-			default: articleObject
-
-			// any fields the default has that the result doesn't
-			// will be copied over to the result
-			merge: true,
-
-			// you can supply a custom merging function with the signature:
-			// (defaultValue, resultValue, key, defaultObject, resultObject)
-			// https://lodash.com/docs/#mergeWith
-			merge: myMergeFunc,
-		}
-	}
-})
-```
-
-When both the default value and the result are arrays, the default merge strategy will be to combine the two arrays.
-
-```js
-new Vue({
-	asyncData: {
-		numbers: {
-			default: [1, 2]
-			// let's say this returns [3, 4, 5]
-			get() { /* ... */ },
-			merge: true,
-			// after the request, the numbers property will contain [1, 2, 3, 4, 5]
-		}
-	}
-})
-```
-
 
 
 ## `asyncMethods`
@@ -161,7 +123,7 @@ You may want to have methods that do something asynchronously, and you'd like th
 new Vue({
 	asyncMethods: {
 		checkStatus() {
-			return this.axios.post('http://api.external.com/status/', {
+			return this.axios.post('http://api.example.com/status/', {
 				data: { username: this.firstName }
 			})
 		}
@@ -176,12 +138,6 @@ new Vue({
 	p(v-if="checkStatus$results") {{checkStatus$results}}
 	p(v-if="checkStatus$error") There was an error.
 ```
-
-
-<!-- ### Combining Transforms
-
-By default, if you specify a transform at one level, it will be the only one called, and the ones higher than it in the precedence chain won't be. If however you want to have the transforms of higher levels applied -->
-
 
 <!-- ## Clear on Request??? -->
 
@@ -470,147 +426,6 @@ If you've turned on event emitting for the entire appication, some properties ar
 - `$childrenAsyncError`
 
 
-### Different naming for Meta Properties
-
-The default naming strategy for the meta properties like "loading" and "pending" is `propName$metaName`. You may prefer a different naming strategy, and you can pass a function for a different one in the global config.
-
-```js
-Vue.use(VueAsyncProperties, {
-	// for "article" and "loading"
-	// "article__Loading"
-	meta: (propName, metaName) => `${propName}__${capitalize(metaName)}`,
-
-	// or ...
-	// "$loading_article"
-	meta: (propName, metaName) => '$' + metaName + '_' + propName,
-
-	// the default is:
-	meta: (propName, metaName) => `${propName}$${metaName}`,
-})
-```
-
-
-## Debouncing
-
-It's always a good idea to debounce asynchronous functions that rely on user input. You can configure this both globally and at the property level.
-
-```js
-// global configuration
-Vue.use(VueAsyncProperties, {
-	// if the value is just a number, it's used as the wait time
-	debounce: 500,
-
-	// or ...
-	// you can pass an object for more complex situations
-	debounce: {
-		wait: 500,
-
-		// these are the same options used in lodash debounce
-		// https://lodash.com/docs/#debounce
-		leading: false, // default
-		trailing: true, // default
-		maxWait: null, // default
-	}
-})
-
-// property level configuration
-new Vue({
-	data: {
-		searchQuery: ''
-	},
-	asyncComputed: {
-		searchResults: {
-			endpoint: '/search/:searchQuery',
-			// this will be 1000 instead of the default globally configured 500
-			debounce: {
-				wait: 1000,
-				maxWait: 3000
-			}
-		}
-	}
-})
-```
-
-
-## Lazy Requests
-
-If you don't want the requests to go out immediately when the component is created for the first time, but instead to wait for a model change or a `prop$refresh` call, set the lazy option to true at the property level.
-
-```js
-new Vue({
-	props: ['articleId'],
-	asyncData: {
-		article: {
-			lazy: true
-			// won't be triggered until article$refresh is called
-			endpoint: '/articles/:articleId',
-		}
-	},
-
-	data: {
-		searchQuery: ''
-	},
-	asyncComputed: {
-		searchResults: {
-			lazy: true
-			// won't be triggered until searchQuery changes
-			endpoint: '/search/:searchQuery',
-		}
-	}
-})
-```
-
-
-## Transformation Functions
-
-Pass a `transform` function if you have some processing you'd always like to do with request results. **Note:** this function will only be called if a request is actually made.
-
-```js
-new Vue({
-	props: ['articleId'],
-	asyncData: {
-		article: {
-			endpoint: '/articles/:articleId',
-			transform(result) {
-				// this is the default,
-				// which simply returns the data value from result
-				return result.data
-			}
-		}
-	}
-})
-```
-
-
-## Error Handling
-
-You can set up error handling pipelines, either globally (maybe you have some sort of notification tray or alerts), or at the property level.
-
-```js
-Vue.use(VueAsyncProperties, {
-	errorHandler(error) {
-		Notification.error({ title: "error", message: error.message })
-	}
-})
-
-new Vue({
-	props: ['articleId'],
-	asyncData: {
-		article: {
-			endpoint: '/articles/:articleId',
-
-			// this flag causes this local errorHandler to be the only one called
-			// so the global handler WON'T be called
-			errorHandlerTakeover: true,
-			errorHandler(error) {
-				this.doErrorStuff(error)
-			}
-		}
-	}
-})
-```
-
-
 ## Full Urls
 
 You can fully specify a endpoint if you're using a different one than the `baseURL`. Any endpoint that has `http://` or `https://` in it will be used as the full endpoint.
@@ -639,12 +454,6 @@ Vue.use(VueAsyncProperties, {
 	globalFlags: true // default
 })
 ```
-
-
-
-
-
-
 
 
 

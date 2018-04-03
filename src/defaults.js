@@ -9,7 +9,9 @@ const commonLocalDefaultObject = {
 	// mergeFunction: () => {}, // ?
 	transform: (result) => result.data,
 	// transformCombine: false,
-	error: (e) => { console.error(e) },
+	error: (e) => {
+		console.log('stuff')
+		console.error(e) },
 	// errorCombine: false,
 }
 
@@ -26,11 +28,14 @@ const computedLocalDefaultObject = {
 	}
 }
 
-// more is only defaulted if it exists
 const moreDefaultObject = {
 	concat: (posts, newPosts) => posts.concat(newPosts)
 }
 
+const vuexMoreDefaultObject = {
+	reset: (state, lastResult) => {},
+	// ...moreDefaultObject
+}
 
 export function globalDefaults(options) {
 	options = cloneDeep(options || {})
@@ -91,4 +96,20 @@ export function computedDefaults(options, bigOptions = {}) {
 	options = commonChanges(options)
 
 	return defaultsDeep(options, bigOptions, commonLocalDefaultObject, computedLocalDefaultObject)
+}
+
+export function commonVuexChanges(options) {
+	options = cloneDeep(options || {})
+	if (options.more) options.more = defaultsDeep(options.more, vuexMoreDefaultObject)
+	return options
+}
+
+export function vuexStateDefaults(options, bigOptions = {}) {
+	options = dataDefaults(options, bigOptions)
+	return commonVuexChanges(options)
+}
+
+export function vuexGetterDefaults(options, bigOptions = {}) {
+	options = computedDefaults(options, bigOptions)
+	return commonVuexChanges(options)
 }

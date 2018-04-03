@@ -1,42 +1,35 @@
-[vue-async-properties]
-async vuex
-
-asyncState
-- document interface
--
-- test cases
-
-asyncGetters
-- document interface
-
 [AsyncVuex]
-- can have async computed (asyncGetter?)
--- takes either a getter or mutations as watchers
-- can have async data (asyncState?)
--- has a single barrier watcher to compute async datas
--- can accept a function that calls a 'dispatchAll' method
+- asyncState
+-- lazy
+-- $refresh
+- asyncGetter
+-- takes either a getter or mutation/action names as watchers
+-- eager
+-- $pending
+-- $now
+-- $cancel
+- both 
+-- guard
+-- $loading
+-- transform
+-- error
+-- more and reset
 
-future features
-- has `$offset` variable that allows them to use only one route
-- therefore has other configurable methods to make sure that behaves properly
+[`1.0.0`]
+- asyncMethods
+- clean up `$more` with the `$offset` variable passed in to the get
+- allow `more` option to just be the concat function, since we don't need a `more.get`
+-- this can stand in for merging by allowing the concat to be anything
+-- let them provide a `size` method, used to set the `$offset` passed in. this would give them flexibility for things like merge
+- make debouncing option stricter, use `watch` and `watchClosely` to trigger off/on
+- be stricter about what causes a reset to default. probably only `undefined` makes sense
+- no more default transform
+- add in the "pure string" version, with colon-prefix routes? To do this they have to provide an http method at the global level or the property level
+- `mapAsync` methods to make binding these convenient
 
 
-async methods
+[asyncMethods]
 - spec
-- returns "results", so you can await
-- places "results" in `method$results`
-- has loading and error
-
-features
-- X allow for function or object in data
-- X customizable meta naming
-- X defaults
-- X transformations
-- X returning values
-- X debouncing
-- X lazy/eager
-- X error handling
-- X allow error and transform to use component `this`
-- X write tests for error and transform
-- merging
-- component-wide flags?
+- optional debounce
+- just wraps a normal method with loading/pending/error/etc
+- perhaps has global `$last` result

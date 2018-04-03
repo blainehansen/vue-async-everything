@@ -28,8 +28,8 @@ export default function AsyncComputedMixinBuilder(options) {
 	beforeCreate() {
 		let properties = this.$options.asyncComputed || {}
 
-		this.$options.methods = this.$options.methods || {}
-		let methods = this.$options.methods
+		this.$options.methods = this.$options.methods
+		let methods = this.$options.methods || {}
 
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
@@ -37,7 +37,7 @@ export default function AsyncComputedMixinBuilder(options) {
 			let resolverFunction = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
 
 			if (opt.debounce !== false) {
-				let debouncedResolverFunction = debounce(
+				const debouncedResolverFunction = debounce(
 					resolverFunction,
 					opt.debounce.wait, opt.debounce.options
 				)
