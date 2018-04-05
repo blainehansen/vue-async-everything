@@ -40,7 +40,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/blainehansen/vue-async-properties"
+		"url": "https://github.com/marketdial/vue-async-properties"
 	},
 	"dependencies": {
 		"babel-runtime": "^6.26.0",
