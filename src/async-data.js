@@ -28,6 +28,9 @@ export default function AsyncDataMixinBuilder(options) {
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)
 
+			if (!opt.get)
+				throw `An asyncData was created without a get method: ${opt}`
+
 			methods[metaRefresh(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
 
 			// load more stuff

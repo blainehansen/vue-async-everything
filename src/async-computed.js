@@ -34,6 +34,9 @@ export default function AsyncComputedMixinBuilder(options) {
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
 
+			if (!opt.get)
+				throw `An asyncComputed was created without a get method: ${opt}`
+
 			let resolverFunction = resolverForGivenFunction.call(this, propName, metas, opt.get, opt.default, opt.transform, opt.error)
 
 			if (opt.debounce !== false) {
@@ -73,6 +76,9 @@ export default function AsyncComputedMixinBuilder(options) {
 
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
+
+			if (!opt.watch && !opt.watchClosely)
+				throw `A computed was created without any kind of watch: ${opt}`
 
 			const resolverFunction = this[metaResolver(propName)]
 			// get the debounced version of it

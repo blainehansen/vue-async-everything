@@ -3,23 +3,18 @@ import Vue from 'vue'
 import { delay } from 'bluebird'
 import { reduce, cloneDeep } from 'lodash'
 
-
-import AsyncDataMixinBuilder from '../src/async-data.js'
-import AsyncComputedMixinBuilder from '../src/async-computed.js'
+import AsyncProperties from '../src/'
+Vue.use(AsyncProperties, { debounce: 5, transform: null })
 
 const defaultString = 'defaultString'
 const oneString = 'oneString'
 const twoString = 'twoString'
 
-const transformCompound = 'transformed '
+const transformCompound = 'transformed'
 const errorMessage = 'error message'
 
-function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOptions = {}) {
+function mixinAndExtend(bothOptions = {}, asyncDataOptions = {}, asyncComputedOptions = {}) {
 	return Vue.extend({
-		mixins: [
-			AsyncDataMixinBuilder({debounce: 5, transform: null, ...options}),
-			AsyncComputedMixinBuilder({debounce: 5, transform: null, ...options})
-		],
 		render(h) {
 			return h('div', [h('span', this.member), h('span', this.delayMember), h('span', this.upperMember)])
 		},
@@ -32,7 +27,6 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 				transformCompound,
 				errorMessage,
 				otherErrorContainer: null,
-
 			}
 		},
 
@@ -42,6 +36,7 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 				get() {
 					return delay(5).return(this.member)
 				},
+				...bothOptions,
 				...asyncDataOptions
 			},
 
@@ -52,6 +47,7 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 				more() {
 					return delay(5).return([4, 5, 6])
 				},
+				...bothOptions,
 				...asyncDataOptions
 			}
 
@@ -64,6 +60,7 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 				get() {
 					return delay(5).return(this.member.toUpperCase())
 				},
+				...bothOptions,
 				...asyncComputedOptions
 			},
 
@@ -75,6 +72,7 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 				more() {
 					return delay(5).return([8, 10, 12])
 				},
+				...bothOptions,
 				...asyncComputedOptions
 			}
 		}
@@ -82,10 +80,6 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 }
 
 const NoneComponent = Vue.extend({
-	mixins: [
-		AsyncDataMixinBuilder({debounce: 5, transform: null}),
-		AsyncComputedMixinBuilder({debounce: 5, transform: null})
-	],
 	render(h) {
 		return h('div', [h('span', this.member)])
 	},
@@ -127,7 +121,7 @@ const WatchCloselyComponent = mixinAndExtend(undefined, undefined, { watchClosel
 
 const TransformComponent = mixinAndExtend({
 	transform(result) {
-		return `${this.transformCompound}${result}`
+		return `${this.transformCompound} ${result}`
 	}
 }, undefined, undefined)
 
@@ -153,16 +147,99 @@ const LoadMoreAppendComponent = mixinAndExtend(undefined, {
 	}
 })
 
+
+const conflictingMixin = {
+	asyncData: {
+		notFoo() {
+			return delay(5).return(this.member)
+		}
+	},
+	asyncComputed: {
+		notBar: {
+			get() {
+				return delay(5).return(this.member.toUpperCase())
+			},
+			watch: 'member'
+		}
+	}
+}
+const OverlappingMixinsComponent = Vue.extend({
+	mixins: [
+		conflictingMixin,
+	],
+	asyncData: {
+		foo() {
+			return delay(5).return(this.member)
+		}
+	},
+	asyncComputed: {
+		bar: {
+			get() {
+				return delay(5).return(this.member.toUpperCase())
+			},
+			watch: 'member'
+		}
+	},
+	render(h) {
+		return h('div', [h('span', this.member)])
+	},
+	data() {
+		return {
+			member: oneString,
+		}
+	}
+})
+
+
+
 let c
 
 describe("component without either asyncData or asyncComputed", function() {
-	it ("doesn't error", function() {
+	it("doesn't error", function() {
 		c = new NoneComponent()
 
 		expect(() => { c.$mount() }).to.not.throw()
 
 	})
 })
+
+
+describe("component that uses mixins with asyncData or asyncComputed", function() {
+	it("has merged options, from current and mixin", function() {
+		c = new OverlappingMixinsComponent()
+
+		expect(c).property('member').to.eql(oneString)
+
+		expect(c).property('foo$default').to.be.null
+		expect(c).property('foo').to.eql(c.foo$default)
+		expect(c).property('foo$error').to.be.null
+		expect(c).property('foo$loading').to.be.false
+		expect(c).property('foo$refresh').to.be.a('function')
+
+		expect(c).property('bar$default').to.be.null
+		expect(c).property('bar').to.eql(c.bar$default)
+		expect(c).property('bar$error').to.be.null
+		expect(c).property('bar$loading').to.be.false
+		expect(c).property('bar$pending').to.be.false
+		expect(c).property('bar$cancel').to.be.a('function')
+		expect(c).property('bar$now').to.be.a('function')
+
+		expect(c).property('notFoo$default').to.be.null
+		expect(c).property('notFoo').to.eql(c.notFoo$default)
+		expect(c).property('notFoo$error').to.be.null
+		expect(c).property('notFoo$loading').to.be.false
+		expect(c).property('notFoo$refresh').to.be.a('function')
+
+		expect(c).property('notBar$default').to.be.null
+		expect(c).property('notBar').to.eql(c.notBar$default)
+		expect(c).property('notBar$error').to.be.null
+		expect(c).property('notBar$loading').to.be.false
+		expect(c).property('notBar$pending').to.be.false
+		expect(c).property('notBar$cancel').to.be.a('function')
+		expect(c).property('notBar$now').to.be.a('function')
+	})
+})
+
 
 describe("asyncData", function() {
 
@@ -338,7 +415,7 @@ describe("asyncData", function() {
 
 		// after load
 		await delay(10)
-		expect(c).property('delayMember').to.eql(`${transformCompound}${oneString}`)
+		expect(c).property('delayMember').to.eql(`${transformCompound} ${oneString}`)
 	})
 
 	it("has a functioning error handler", async function() {
@@ -411,7 +488,7 @@ describe("asyncComputed", function() {
 		expect(c).property('upperMember$loading').to.be.false
 
 		// after debounce
-		await delay(6)
+		await delay(7)
 		expect(c).property('upperMember$pending').to.be.false
 		expect(c).property('upperMember$loading').to.be.true
 
@@ -599,7 +676,7 @@ describe("asyncComputed", function() {
 		// after debounce and load
 		await delay(12)
 
-		expect(c).property('upperMember').to.eql(`${transformCompound}${twoString.toUpperCase()}`)
+		expect(c).property('upperMember').to.eql(`${transformCompound} ${twoString.toUpperCase()}`)
 	})
 
 	it("has a functioning error handler", async function() {
