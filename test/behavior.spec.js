@@ -701,6 +701,7 @@ describe("asyncComputed", function() {
 		// after change
 		c.member = twoString
 		await Vue.nextTick()
+		expect(c).property('member').to.be.eql(twoString)
 		expect(c).property('upperMember$pending').to.be.true
 		expect(c).property('upperMember$loading').to.be.false
 
