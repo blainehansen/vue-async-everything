@@ -11,8 +11,9 @@ export default function AsyncDataMixinBuilder(options) {
 	const metaError = metaFunctionBuilder('error', meta)
 	const metaDefault = metaFunctionBuilder('default', meta)
 	const metaMore = metaFunctionBuilder('more', meta)
+	const metaReset = metaFunctionBuilder('reset', meta)
 
-	const metas = { metaLoading, metaError, metaDefault }
+	const metas = { metaLoading, metaError, metaDefault, metaReset }
 
 	const dataGlobalDefaults = dataDefaults(options)
 

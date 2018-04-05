@@ -81,7 +81,6 @@ function mixinAndExtend(options = {}, asyncDataOptions = {}, asyncComputedOption
 	})
 }
 
-
 const NoneComponent = Vue.extend({
 	mixins: [
 		AsyncDataMixinBuilder({debounce: 5, transform: null}),
@@ -688,131 +687,267 @@ describe("asyncComputed", function() {
 })
 
 
-const firstName = 'first'
-const secondName = 'second'
-const basicVuexOptions = {
-	state: {
-		name: firstName,
-		triggerMember: true,
-		triggerCollectionMember: true,
-	},
-
-	mutations: {
-		setName(state, name) {
-			state.name = name
-		}
-	},
-
-	// asyncGuard: (state, getters) => state.name == secondName,
-
-	asyncState: {
-		delayName(state, getters)  {
-			return delay(5).return(state.name)
-		},
-
-		delayCollection: {
-			get(state, getters) {
-				return delay(5).return([1, 2, 3])
-			},
-
-			more(state, getters) {
-				return delay(5).return([4, 5, 6])
-			}
-		}
-	},
-
-	asyncGetters: {
-		upperMember: {
-			watch: (state, getters) => state.name,
-			get(state, getters) {
-				return delay(5).return(state.name.toUpperCase())
-			},
-			// ...asyncComputedOptions
-		},
-
-		twiceCollection: {
-			watch: (state, getters) => state.triggerCollectionMember,
-			get() {
-				return delay(5).return([2, 4, 6])
-			},
-			more() {
-				return delay(5).return([8, 10, 12])
-			},
-			// ...asyncComputedOptions
-		}
-	}
-}
-
-// import { createLocalVue } from '@vue/test-utils'
+import { createLocalVue } from '@vue/test-utils'
 import VueAsyncProperties from '../src/index.js'
 import AsyncVuex from '../src/vuex.js'
 
+const firstName = 'first'
+const secondName = 'second'
+function createVuex(options = {}, asyncGuard = null, asyncStateOptions = {}, asyncGettersOptions = {}) {
+	const localVue = createLocalVue()
+	localVue.use(VueAsyncProperties, { debounce: 5, transform: null, ...options })
+	localVue.use(AsyncVuex)
+
+	return new AsyncVuex.Store({
+		state: {
+			name: firstName,
+			triggerMember: true,
+			triggerCollectionMember: true,
+
+			garbage: null,
+			guardFlag: false,
+		},
+
+		mutations: {
+			setName(state, name) {
+				state.name = name
+			},
+
+			setGuardFlag(state, val) {
+				state.guardFlag = val
+			},
+
+			garbageMutation(state, garbage) {
+				state.garbage = garbage
+			}
+		},
+
+		actions: {
+			async watchThis({ commit }) {
+				await delay(5)
+				commit('garbageMutation', 'garbage')
+			}
+		},
+
+		asyncGuard,
+
+		asyncState: {
+			delayName: {
+				get(state, getters) {
+					return delay(5).return(state.name)
+				},
+				...asyncStateOptions
+			},
+
+			delayCollection: {
+				get(state, getters) {
+					return delay(5).return([1, 2, 3])
+				},
+
+				more(state, getters) {
+					return delay(5).return([4, 5, 6])
+				},
+				...asyncStateOptions
+			}
+		},
+
+		asyncGetters: {
+			upperName: {
+				watch: (state, getters) => state.name,
+				get(state, getters) {
+					return delay(5).return(state.name.toUpperCase())
+				},
+				...asyncGettersOptions
+			},
+
+			twiceCollection: {
+				watch: (state, getters) => state.triggerCollectionMember,
+				get() {
+					return delay(5).return([2, 4, 6])
+				},
+				more() {
+					return delay(5).return([8, 10, 12])
+				},
+				...asyncGettersOptions
+			}
+		}
+	})
+}
+
+
 describe("vuex asyncState", function() {
 
-	it("loads immediately", async function() {
-		// const localVue = createLocalVue()
-		Vue.use(VueAsyncProperties)
-		Vue.use(AsyncVuex)
-
-		const store = new AsyncVuex.Store(cloneDeep(basicVuexOptions))
+	it("has the correct base functionality", async function() {
+		const store = createVuex()
 
 		expect(store.state.name).to.eql(firstName)
 		expect(store.state.delayName).to.eql(null)
 		expect(store.state.delayName$loading).to.eql(true)
 		await Vue.nextTick()
-		await delay(10)
+		await delay(6)
 
 		expect(store.state.delayName).to.eql(firstName)
 		expect(store.state.delayName$loading).to.eql(false)
 
+		// doesn't respond to changes
+		store.commit('setName', secondName)
+		expect(store.state.name).to.eql(secondName)
+		expect(store.state.delayName).to.eql(firstName)
+		expect(store.state.delayName$loading).to.eql(false)
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.delayName).to.eql(firstName)
+
+		// but we can refresh it
+		const dispatchPromise = store.dispatch('delayName$refresh')
+		expect(store.state.delayName).to.eql(firstName)
+		expect(store.state.delayName$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(6)
+		await dispatchPromise
+		expect(store.state.delayName).to.eql(secondName)
+		expect(store.state.delayName$loading).to.eql(false)
 	})
 
-	// it ("doesn't respond to mutations")
+	it ("waits for a guard", async function() {
+		const store = createVuex(undefined, (state, getters) => state.guardFlag)
 
-	// it ("waits for a guard")
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.delayName).to.eql(null)
+		expect(store.state.delayName$loading).to.eql(false)
+		await Vue.nextTick()
+		await delay(6)
 
-	// it ("respects lazy")
+		expect(store.state.delayName).to.eql(null)
+		expect(store.state.delayName$loading).to.eql(false)
 
+		store.commit('setGuardFlag', true)
+		expect(store.state.guardFlag).to.eql(true)
+		await Vue.nextTick()
+		expect(store.state.delayName).to.eql(null)
+		// expect(store.state.delayName$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(6)
 
-	// check state and delay and everything
-	// probably wait and check
+		expect(store.state.delayName).to.eql(firstName)
+		expect(store.state.delayName$loading).to.eql(false)
+	})
 
-	// perform mutation
+	it ("respects lazy", async function() {
+		const store = createVuex(undefined, undefined, { lazy: true })
 
-	// check wait check
-	//
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.delayName).to.eql(null)
+		expect(store.state.delayName$loading).to.eql(false)
+		await Vue.nextTick()
+		await delay(6)
+
+		expect(store.state.delayName).to.eql(null)
+		expect(store.state.delayName$loading).to.eql(false)
+
+		const dispatchPromise = store.dispatch('delayName$refresh')
+		expect(store.state.delayName).to.eql(null)
+		expect(store.state.delayName$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(6)
+		await dispatchPromise
+		expect(store.state.delayName).to.eql(firstName)
+		expect(store.state.delayName$loading).to.eql(false)
+	})
 })
 
 
-// const allGlobalConfig = {
-// 	meta: (propName, metaName) => `${propName}_${metaName}`,
-// 	error(e) {
-// 		expect
-// 	},
-// 	transform() {
-// 		expect
-// 	},
-// 	debounce: {
+describe("vuex asyncGetters", function() {
 
-// 	}
-// })
+	it("has the correct base functionality", async function() {
+		const store = createVuex()
 
-// describe("global config", function() {
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$loading).to.eql(false)
+		await Vue.nextTick()
 
-// 	describe("meta naming", function() {
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$loading).to.eql(false)
 
-// 	})
+		store.commit('setName', secondName)
+		expect(store.state.name).to.eql(secondName)
+		await Vue.nextTick()
+		// pending after change
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(true)
+		expect(store.state.upperName$loading).to.eql(false)
 
-// 	describe("transform", function() {
+		await Vue.nextTick()
+		await delay(6)
+		// loading after pending
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(true)
 
-// 	})
+		await Vue.nextTick()
+		await delay(6)
+		// done
+		expect(store.state.upperName).to.eql(secondName.toUpperCase())
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
 
-// 	describe("error handler", function() {
+	})
 
-// 	})
+	it("waits for a guard", async function() {
+		const store = createVuex(undefined, (state, getters) => state.guardFlag)
 
-// 	describe("debounce", function() {
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
+		await Vue.nextTick()
+		await delay(6)
 
-// 	})
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
 
-// })
+		store.commit('setName', secondName)
+		expect(store.state.name).to.eql(secondName)
+		await Vue.nextTick()
+		// the guard isn't satisfied yet
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
+
+		store.commit('setGuardFlag', true)
+		await Vue.nextTick()
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(true)
+		expect(store.state.upperName$loading).to.eql(false)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(true)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.upperName).to.eql(secondName.toUpperCase())
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
+	})
+
+	it("respects eager", async function() {
+		const store = createVuex(undefined, undefined, undefined, { eager: true })
+
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(6)
+
+		expect(store.state.upperName).to.eql(firstName.toUpperCase())
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
+	})
+
+})

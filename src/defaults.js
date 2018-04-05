@@ -9,9 +9,7 @@ const commonLocalDefaultObject = {
 	// mergeFunction: () => {}, // ?
 	transform: (result) => result.data,
 	// transformCombine: false,
-	error: (e) => {
-		console.log('stuff')
-		console.error(e) },
+	error: (e) => { console.error('error', e) },
 	// errorCombine: false,
 }
 
@@ -34,7 +32,6 @@ const moreDefaultObject = {
 
 const vuexMoreDefaultObject = {
 	reset: (state, lastResult) => {},
-	// ...moreDefaultObject
 }
 
 export function globalDefaults(options) {

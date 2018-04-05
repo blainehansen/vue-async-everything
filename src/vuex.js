@@ -1,11 +1,8 @@
 import { isNil, createResolverFunction, metaFunctionBuilder, dataObjBuilder } from './core.js'
 import { globalDefaults, vuexStateDefaults, vuexGetterDefaults } from './defaults.js'
 
-
-import Vue from 'vue'
 import Vuex from 'vuex'
 import { debounce } from 'lodash'
-
 
 
 function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading, metaLoadingSet, metaPending = null, metaPendingSet = null, metaError, metaErrorHandler, metaErrorSet, metaMore = null, metaReset = null }) {
@@ -39,8 +36,11 @@ function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading,
 	const assignPending = assignPendingTemp
 
 	const errorHandlerName = metaErrorHandler(propName)
-	mutations[errorHandlerName] = opt.error
+	const errorFunction = opt.error
 	// errorHandler is a mutation
+	mutations[errorHandlerName] = (vuexContext, error) => {
+		errorFunction(error)
+	}
 	const errorHandler = (error, { commit }) => commit(errorHandlerName, error)
 
 	const errorName = metaError(propName)
@@ -74,8 +74,6 @@ function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading,
 		actions[metaMore(propName)] = createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending, emitReset)
 	}
 	const assignValue = (result, { commit }) => {
-		console.log('result', result)
-		console.log('commit', commit)
 		if (!isNil(result)) commit(setName, result)
 		else commit(setName, defaultValue)
 	}
@@ -84,10 +82,13 @@ function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading,
 }
 
 
+import { asyncPropertiesOptions } from './index.js'
+
 class AsyncVuex extends Vuex.Store {
 	constructor({ asyncState = {}, asyncGetters = {}, asyncGuard, asyncStateStartup, state = {}, getters = {}, mutations = {}, actions = {}, modules, plugins = [], ...options }) {
 
-		const { meta, dataGlobalDefaults, computedGlobalDefaults } = Vue.$asyncPropertiesOptions
+		if (!asyncPropertiesOptions) throw Error("there aren't any global options")
+		const { meta, dataGlobalDefaults, computedGlobalDefaults } = asyncPropertiesOptions
 		const metaRefresh = metaFunctionBuilder('refresh', meta)
 		const metaCancel = metaFunctionBuilder('cancel', meta)
 		const metaNow = metaFunctionBuilder('now', meta)
@@ -110,7 +111,7 @@ class AsyncVuex extends Vuex.Store {
 
 		state = {
 			...state,
-			...dataObjBuilder(asyncState, { metaPending, metaLoading, metaError, metaDefault }),
+			...dataObjBuilder(asyncState, { metaLoading, metaError, metaDefault }),
 			...dataObjBuilder(asyncGetters, { metaPending, metaLoading, metaError, metaDefault }, true)
 		}
 
@@ -205,18 +206,18 @@ class AsyncVuex extends Vuex.Store {
 
 
 		function asyncPlugin(store) {
+			let hasRun = false
 			function runAllDispatches() {
 				for (const actionName of immediateDispatches) {
 					store.dispatch(actionName)
 				}
+				hasRun = true
 			}
 
 			if (asyncGuard) {
-				let hasRun = false
 				store.watch(asyncGuard, (guardResults) => {
 					if (guardResults && !hasRun) {
 						runAllDispatches()
-						hasRun = true
 					}
 				}, { deep: true, immediate: true })
 			}
@@ -224,18 +225,37 @@ class AsyncVuex extends Vuex.Store {
 
 
 			for (const [watch, responseFunction] of watches) {
-				store.watch(watch, () => responseFunction(store), { deep: true, immediate: false })
+				let fullWatch
+				if (asyncGuard) {
+					fullWatch = (state, getters) => asyncGuard(state, getters) && watch(state, getters)
+				}
+				else fullWatch = watch
+
+				store.watch(fullWatch, () => responseFunction(store), { deep: true, immediate: false })
 			}
 
-			store.subscribe((mutationName, state) => {
-				const responseFunction = subscribeMutationNames[mutationName]
-				if (responseFunction) responseFunction(store)
-			})
+			if (asyncGuard) {
+				store.subscribe((mutationName, state) => {
+					const responseFunction = subscribeMutationNames[mutationName]
+					if (responseFunction && asyncGuard(store.state, store.getters)) responseFunction(store)
+				})
 
-			store.subscribeAction((actionName, state) => {
-				const responseFunction = subscribeActionNames[actionName]
-				if (responseFunction) responseFunction(store)
-			})
+				store.subscribeAction((actionName, state) => {
+					const responseFunction = subscribeActionNames[actionName]
+					if (responseFunction && asyncGuard(store.state, store.getters)) responseFunction(store)
+				})
+			}
+			else {
+				store.subscribe((mutationName, state) => {
+					const responseFunction = subscribeMutationNames[mutationName]
+					if (responseFunction) responseFunction(store)
+				})
+
+				store.subscribeAction((actionName, state) => {
+					const responseFunction = subscribeActionNames[actionName]
+					if (responseFunction) responseFunction(store)
+				})
+			}
 		}
 
 		plugins.push(asyncPlugin)
@@ -245,5 +265,7 @@ class AsyncVuex extends Vuex.Store {
 	}
 }
 
-Vuex.Store = AsyncVuex
-export default Vuex
+export default {
+	...Vuex,
+	Store: AsyncVuex
+}

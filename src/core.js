@@ -66,7 +66,7 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 	return (vuexContext) => {
 		assignPending(false, vuexContext)
 		assignError(null, vuexContext)
-		let givenResult = givenFunction(vuexContext)
+		const givenResult = vuexContext ? givenFunction(vuexContext.state, vuexContext.getters) : givenFunction()
 
 		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
 			assignLoading(true, vuexContext)
@@ -74,14 +74,12 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 			// place a then on the promise
 			givenResult
 			.then((result) => {
-				console.log('promise is successful')
 				// we'd probably also have to branch based on whether we're resetting or not
 
 				assignValue(transformFunction(result, vuexContext), vuexContext)
 				return result
 			})
 			.catch((error) => {
-				console.log('catch is called')
 				assignError(error, vuexContext)
 				errorHandler(error, vuexContext)
 
@@ -118,7 +116,7 @@ export function dataObjBuilder(properties = {}, { metaPending, metaLoading, meta
 		const defaultValue = prop.default || null
 		dataObj[propName] = defaultValue
 
-		if (!shouldDebounce && prop.debounce !== null) {
+		if (shouldDebounce && prop.debounce !== null) {
 			// pending
 			dataObj[metaPending(propName)] = false
 		}
