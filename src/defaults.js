@@ -27,11 +27,11 @@ const computedLocalDefaultObject = {
 }
 
 const moreDefaultObject = {
-	concat: (posts, newPosts) => posts.concat(newPosts)
+	concat: (list, nextList) => list.concat(nextList)
 }
 
 const vuexMoreDefaultObject = {
-	reset: (state, lastResult) => {},
+	reset: (state, resetResult) => {},
 }
 
 export function globalDefaults(options) {

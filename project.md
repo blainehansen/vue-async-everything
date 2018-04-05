@@ -1,19 +1,20 @@
 [AsyncVuex]
-- asyncState
--- lazy
--- $refresh
+- X asyncState
+-- X lazy
+-- X $refresh
 - asyncGetter
--- takes either a getter or mutation/action names as watchers
--- eager
--- $pending
+-- X takes either a getter or mutation/action names as watchers
+-- X eager
+-- X $pending
 -- $now
 -- $cancel
 - both 
--- guard
--- $loading
+-- X guard
+-- X $loading
 -- transform
 -- error
--- more and reset
+-- X more
+-- reset
 
 [`1.0.0`]
 - asyncMethods
@@ -25,7 +26,7 @@
 - be stricter about what causes a reset to default. probably only `undefined` makes sense
 - no more default transform
 - add in the "pure string" version, with colon-prefix routes? To do this they have to provide an http method at the global level or the property level
-- `mapAsync` methods to make binding these convenient
+- `mapAsync` methods to make vuex bindings more convenient
 
 
 [asyncMethods]

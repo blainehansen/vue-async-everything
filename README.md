@@ -2,11 +2,11 @@
 
 > Vue Component Plugin for asynchronous data and computed properties.
 
-**Proudly sponsored by Marketdial**
+**A Marketdial Project**
 
 <p>
 <a href="http://marketdial.com">
-<img src="https://cdn.rawgit.com/blainehansen/vue-async-properties/master/marketdial-logo.svg" alt="MarketDial logo" title="MarketDial" width="35%">
+<img src="https://cdn.rawgit.com/marketdial/vue-async-properties/master/marketdial-logo.svg" alt="MarketDial logo" title="MarketDial" width="35%">
 </a>
 </p>
 
@@ -14,14 +14,18 @@
 
 ```js
 new Vue({
-  props: ['articleId'],
-
+  props: {
+    articleId: Number
+  },
   asyncData: {
     article() {
       return this.axios.get(`/articles/${this.articleId}`)
     }
   },
 
+  data: {
+    query: ''
+  },
   asyncComputed: {
     searchResults: {
       get() {
@@ -111,7 +115,7 @@ new Vue({
     // when the component is created
     // a request will be made to
     // http://api.example.com/v1/articles/articleId
-    // (or whatever base url you've configured)
+    // (or whatever baseURL you've configured)
     article() {
       return this.axios.get(`/articles/${this.articleId}`)
     }
@@ -179,7 +183,7 @@ span(v-if="searchResults$error")
   | There was an error while making your search!
   | {{searchResults$error.message}}
 
-#search-results(:class="{'loading': searchResults$loading}")
+#search-results(v-else, :class="{'loading': searchResults$loading}")
   .search-result(v-for="result in results")
     p {{result.text}}
 ```
@@ -203,65 +207,6 @@ Properties to show the status of your requests, and methods to manage them, are 
 - `prop$pending`: if a request is *queued*, but not yet sent because of debouncing
 - `prop$cancel()`: cancel any debounced requests
 - `prop$now()`: immediately perform the latest debounced request
-
-
-### Different naming for Meta Properties
-
-The default naming strategy for the meta properties like `loading` and `pending` is `propName$metaName`. You may prefer a different naming strategy, and you can pass a function for a different one in the global config.
-
-```js
-Vue.use(VueAsyncProperties, {
-  // for "article" and "loading"
-  // "article__Loading"
-  meta: (propName, metaName) => `${propName}__${myCapitalize(metaName)}`,
-
-  // ... or ...
-  // "$loading_article"
-  meta: (propName, metaName) => '$' + metaName + '_' + propName,
-
-  // the default is:
-  // "article$loading"
-  meta: (propName, metaName) => `${propName}$${metaName}`,
-})
-```
-
-
-## Returning a Value Rather Than a Promise
-
-If you don't want a request to be performed, you can directly return a value instead of a promise.
-
-```js
-new Vue({
-  props: ['articleId'],
-  asyncData: {
-    article: {
-      get() {
-        // if you return null
-        // the default will be used
-        // and no request will be performed
-        if (!this.articleId) return null
-
-        // ... or ...
-
-        // doing this will directly set the value
-        // and no request will be performed
-        if (!this.articleId) return {
-          title: "No Article ID!",
-          content: "There's nothing there."
-        }
-        else return this.axios.get(`/articles/${this.articleId}`)
-      },
-      // this will be used if null or undefined
-      // are returned either by the get method or by the request it returns
-      // or if there's an error
-      default: {
-        title: "Default Title",
-        content: "Default Content"
-      }
-    }
-  }
-})
-```
 
 
 ## Debouncing
@@ -428,7 +373,6 @@ new Vue({
 ```
 
 
-
 ## Lazy and Eager
 
 `asyncData` allows the `lazy` param, which tells it to not perform its request immediately on creation, and instead set the property as `null` or the default if you've provided one. It will instead wait for the `$refresh` method to be called.
@@ -544,10 +488,10 @@ new Vue({
 ... and with `asyncComputed`:
 
 ```js
+const pageSize = 10,
 new Vue({
   data() {
     return {
-      pageSize: 10,
       pageNumber: 0
     }
   },
@@ -556,8 +500,8 @@ new Vue({
       get() {
         return this.axios.get(`/posts`, {
           params: {
-            limit: this.pageSize,
-            offset: this.pageSize * this.pageNumber,
+            limit: pageSize,
+            offset: pageSize * this.pageNumber,
           }
         })
       },
@@ -710,7 +654,7 @@ new Vue({
   async moreHandler() {
     // `$more` handles appending the results,
     // so don't worry about doing that here
-    // this is just to allow you to inspect the last result
+    // this just allows you to inspect the last result
     let lastResponse = await this.posts$more()
 
     this.noMoreResults = lastResponse.data.length < pageSize

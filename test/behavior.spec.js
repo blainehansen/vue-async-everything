@@ -779,10 +779,9 @@ function createVuex(options = {}, asyncGuard = null, asyncStateOptions = {}, asy
 	return new AsyncVuex.Store({
 		state: {
 			name: firstName,
-			triggerMember: true,
-			triggerCollectionMember: true,
+			triggerMember: false,
+			triggerCollectionMember: false,
 
-			garbage: null,
 			guardFlag: false,
 		},
 
@@ -791,19 +790,26 @@ function createVuex(options = {}, asyncGuard = null, asyncStateOptions = {}, asy
 				state.name = name
 			},
 
+			setTriggerMember(state, val) {
+				state.triggerMember = val
+			},
+			setTriggerCollectionMember(state, val) {
+				state.triggerCollectionMember = val
+			},
+
 			setGuardFlag(state, val) {
 				state.guardFlag = val
 			},
 
-			garbageMutation(state, garbage) {
-				state.garbage = garbage
-			}
+			watchThisMutation(state, val) {
+				state.name += val
+			},
 		},
 
 		actions: {
-			async watchThis({ commit }) {
+			async watchThisAction({ commit }, val) {
 				await delay(5)
-				commit('garbageMutation', 'garbage')
+				commit('watchThisMutation', val)
 			}
 		},
 
@@ -887,7 +893,7 @@ describe("vuex asyncState", function() {
 		expect(store.state.delayName$loading).to.eql(false)
 	})
 
-	it ("waits for a guard", async function() {
+	it("waits for a guard", async function() {
 		const store = createVuex(undefined, (state, getters) => state.guardFlag)
 
 		expect(store.state.name).to.eql(firstName)
@@ -911,7 +917,30 @@ describe("vuex asyncState", function() {
 		expect(store.state.delayName$loading).to.eql(false)
 	})
 
-	it ("respects lazy", async function() {
+	it("can load more", async function() {
+		const store = createVuex()
+
+		expect(store.state.delayCollection).to.eql(null)
+		expect(store.state.delayCollection$loading).to.eql(true)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.delayCollection).to.eql([1, 2, 3])
+		expect(store.state.delayCollection$loading).to.eql(false)
+
+		const morePromise = store.dispatch('delayCollection$more')
+		expect(store.state.delayCollection).to.eql([1, 2, 3])
+		expect(store.state.delayCollection$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(6)
+		const lastResult = await morePromise
+		expect(lastResult).to.eql([4, 5, 6])
+
+		expect(store.state.delayCollection).to.eql([1, 2, 3, 4, 5, 6])
+		expect(store.state.delayCollection$loading).to.eql(false)
+	})
+
+	it("respects lazy", async function() {
 		const store = createVuex(undefined, undefined, { lazy: true })
 
 		expect(store.state.name).to.eql(firstName)
@@ -942,10 +971,12 @@ describe("vuex asyncGetters", function() {
 
 		expect(store.state.name).to.eql(firstName)
 		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
 		expect(store.state.upperName$loading).to.eql(false)
 		await Vue.nextTick()
 
 		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
 		expect(store.state.upperName$loading).to.eql(false)
 
 		store.commit('setName', secondName)
@@ -969,7 +1000,104 @@ describe("vuex asyncGetters", function() {
 		expect(store.state.upperName).to.eql(secondName.toUpperCase())
 		expect(store.state.upperName$pending).to.eql(false)
 		expect(store.state.upperName$loading).to.eql(false)
+	})
 
+	it("responds immediately to watchClosely", async function() {
+		const store = createVuex(undefined, undefined, undefined, { watchClosely: (state) => state.triggerMember })
+
+		expect(store.state.name).to.eql(firstName)
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
+
+		store.commit('setTriggerMember', true)
+		expect(store.state.triggerMember).to.eql(true)
+		await Vue.nextTick()
+
+		expect(store.state.upperName).to.eql(null)
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(true)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.upperName).to.eql(firstName.toUpperCase())
+		expect(store.state.upperName$pending).to.eql(false)
+		expect(store.state.upperName$loading).to.eql(false)
+	})
+
+	it("responds to mutations and actions", async function() {
+		const watchAppend = 'watchAppend'
+
+		const mutationStore = createVuex(undefined, undefined, undefined, { watch: 'watchThisMutation' })
+
+		expect(mutationStore.state.name).to.eql(firstName)
+		expect(mutationStore.state.upperName).to.eql(null)
+		expect(mutationStore.state.upperName$pending).to.eql(false)
+		expect(mutationStore.state.upperName$loading).to.eql(false)
+
+		mutationStore.commit('setName', secondName)
+		expect(mutationStore.state.name).to.eql(secondName)
+		await Vue.nextTick()
+		expect(mutationStore.state.upperName).to.eql(null)
+		expect(mutationStore.state.upperName$pending).to.eql(false)
+		expect(mutationStore.state.upperName$loading).to.eql(false)
+
+		mutationStore.commit('watchThisMutation', watchAppend)
+		expect(mutationStore.state.name).to.eql(secondName + watchAppend)
+		await Vue.nextTick()
+		expect(mutationStore.state.upperName).to.eql(null)
+		expect(mutationStore.state.upperName$pending).to.eql(true)
+		expect(mutationStore.state.upperName$loading).to.eql(false)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(mutationStore.state.upperName).to.eql(null)
+		expect(mutationStore.state.upperName$pending).to.eql(false)
+		expect(mutationStore.state.upperName$loading).to.eql(true)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(mutationStore.state.upperName).to.eql((secondName + watchAppend).toUpperCase())
+		expect(mutationStore.state.upperName$pending).to.eql(false)
+		expect(mutationStore.state.upperName$loading).to.eql(false)
+
+
+		const actionStore = createVuex(undefined, undefined, undefined, { watch: 'watchThisAction' })
+
+		expect(actionStore.state.name).to.eql(firstName)
+		expect(actionStore.state.upperName).to.eql(null)
+		expect(actionStore.state.upperName$pending).to.eql(false)
+		expect(actionStore.state.upperName$loading).to.eql(false)
+
+		actionStore.commit('setName', secondName)
+		expect(actionStore.state.name).to.eql(secondName)
+		await Vue.nextTick()
+		expect(actionStore.state.upperName).to.eql(null)
+		expect(actionStore.state.upperName$pending).to.eql(false)
+		expect(actionStore.state.upperName$loading).to.eql(false)
+
+		actionStore.dispatch('watchThisAction', watchAppend)
+		expect(actionStore.state.name).to.eql(secondName)
+		await Vue.nextTick()
+		expect(actionStore.state.name).to.eql(secondName)
+		expect(actionStore.state.upperName).to.eql(null)
+		expect(actionStore.state.upperName$pending).to.eql(true)
+		expect(actionStore.state.upperName$loading).to.eql(false)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(actionStore.state.name).to.eql(secondName + watchAppend)
+		expect(actionStore.state.upperName).to.eql(null)
+		expect(actionStore.state.upperName$pending).to.eql(false)
+		expect(actionStore.state.upperName$loading).to.eql(true)
+
+		await Vue.nextTick()
+		await delay(6)
+		// since the givenFunction is called at the beginning of the action instead of after it,
+		// this receives the state value at the beginning
+		expect(actionStore.state.upperName).to.eql(secondName.toUpperCase())
+		expect(actionStore.state.upperName$pending).to.eql(false)
+		expect(actionStore.state.upperName$loading).to.eql(false)
 	})
 
 	it("waits for a guard", async function() {
@@ -1011,6 +1139,41 @@ describe("vuex asyncGetters", function() {
 		expect(store.state.upperName).to.eql(secondName.toUpperCase())
 		expect(store.state.upperName$pending).to.eql(false)
 		expect(store.state.upperName$loading).to.eql(false)
+	})
+
+	it("can load more", async function() {
+		const store = createVuex()
+
+		store.commit('setTriggerCollectionMember', true)
+		expect(store.state.triggerCollectionMember).to.eql(true)
+		await Vue.nextTick()
+
+		expect(store.state.twiceCollection).to.eql(null)
+		expect(store.state.twiceCollection$pending).to.eql(true)
+		expect(store.state.twiceCollection$loading).to.eql(false)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.twiceCollection).to.eql(null)
+		expect(store.state.twiceCollection$pending).to.eql(false)
+		expect(store.state.twiceCollection$loading).to.eql(true)
+
+		await Vue.nextTick()
+		await delay(6)
+		expect(store.state.twiceCollection).to.eql([2, 4, 6])
+		expect(store.state.twiceCollection$pending).to.eql(false)
+		expect(store.state.twiceCollection$loading).to.eql(false)
+
+		const morePromise = store.dispatch('twiceCollection$more')
+		expect(store.state.twiceCollection).to.eql([2, 4, 6])
+		expect(store.state.twiceCollection$loading).to.eql(true)
+		await Vue.nextTick()
+		await delay(6)
+		const lastResult = await morePromise
+		expect(lastResult).to.eql([8, 10, 12])
+
+		expect(store.state.twiceCollection).to.eql([2, 4, 6, 8, 10, 12])
+		expect(store.state.twiceCollection$loading).to.eql(false)
 	})
 
 	it("respects eager", async function() {

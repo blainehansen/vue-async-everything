@@ -57,12 +57,13 @@ function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading,
 		state[propName] = val
 	}
 	mutations[setName] = opt.mutation || defaultMutation
+	let emitReset
 	if (metaMore) {
 		const concatFunction = opt.more.concat
 		const resetName = metaReset(propName)
 
 		mutations[resetName] = opt.more.reset
-		const emitReset = (val, { commit }) => {
+		emitReset = (val, { commit }) => {
 			commit(resetName, val)
 		}
 
@@ -71,14 +72,14 @@ function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading,
 			else commit(setName, defaultValue)
 		}
 
-		actions[metaMore(propName)] = createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending, emitReset)
+		actions[metaMore(propName)] = createResolverFunction(opt.more.get, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending)
 	}
 	const assignValue = (result, { commit }) => {
 		if (!isNil(result)) commit(setName, result)
 		else commit(setName, defaultValue)
 	}
 
-	return createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending)
+	return createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending, emitReset)
 }
 
 
@@ -149,11 +150,12 @@ class AsyncVuex extends Vuex.Store {
 
 			const actionName = metaDispatch(propName)
 			actions[actionName] = vuexResolver(opt, propName, mutations, actions, metas)
+			const resolverFunction = (store) => store.dispatch(actionName)
 
 			if (opt.eager) immediateDispatches.push(actionName)
 
 			const debouncedResolverFunction = debounce(
-				(store) => store.dispatch(actionName),
+				resolverFunction,
 				opt.debounce.wait, opt.debounce.options
 			)
 
@@ -173,15 +175,19 @@ class AsyncVuex extends Vuex.Store {
 			// if it's a string or an array of strings, it's added to the response function manifests
 			// those response functions will take the store, and then dispatch an action
 
-			function addWatch(watch, shouldDebounce) {
+			// function addWatch(watch, shouldDebounce) {
+			function addWatch(watch, resolverFunction, shouldDebounce, pendingSetName) {
 				if (!watch) return
 
-				const responseFunction = shouldDebounce
-					? (store) => {
+				let responseFunction
+				if (shouldDebounce) {
+					responseFunction = (store) => {
 						store.commit(pendingSetName, true)
-						return debouncedResolverFunction(store)
+						// resolver function is debounced here
+						return resolverFunction(store)
 					}
-					: (store) => store.dispatch(actionName)
+				}
+				else responseFunction = resolverFunction
 
 				const watchType = typeof watch
 				if (watchType == 'function') {
@@ -193,15 +199,24 @@ class AsyncVuex extends Vuex.Store {
 
 					for (const methodName of watch) {
 						// TODO this will have huge problems with namespaced actions and mutations. right now this will only work with actions and mutations in the current module
-						if (actions.hasOwnProperty(methodName)) subscribeActionNames[methodName] = responseFunction
-						else if (mutations.hasOwnProperty(methodName)) subscribeMutationNames[methodName] = responseFunction
+						if (actions.hasOwnProperty(methodName)) {
+							if (!subscribeActionNames[methodName]) subscribeActionNames[methodName] = []
+							subscribeActionNames[methodName].push(responseFunction)
+						}
+						else if (mutations.hasOwnProperty(methodName)) {
+							if (!subscribeMutationNames[methodName]) subscribeMutationNames[methodName] = []
+							subscribeMutationNames[methodName].push(responseFunction)
+						}
 						else throw Error(`A watch or watchClosely was provided that couldn't be mapped to a mutation or action: ${methodName}`)
 					}
 				}
 			}
 
-			addWatch(opt.watch, true)
-			addWatch(opt.watchClosely, false)
+			if (!opt.watch && !opt.watchClosely)
+				throw `An asyncGetter was created without any kind of watch: ${opt}`
+
+			addWatch(opt.watch, debouncedResolverFunction, true, pendingSetName)
+			addWatch(opt.watchClosely, resolverFunction, false)
 		}
 
 
@@ -234,28 +249,23 @@ class AsyncVuex extends Vuex.Store {
 				store.watch(fullWatch, () => responseFunction(store), { deep: true, immediate: false })
 			}
 
-			if (asyncGuard) {
-				store.subscribe((mutationName, state) => {
-					const responseFunction = subscribeMutationNames[mutationName]
-					if (responseFunction && asyncGuard(store.state, store.getters)) responseFunction(store)
-				})
+			store.subscribe(({ type: mutationName }, state) => {
+				if (!asyncGuard || asyncGuard(store.state, store.getters)) {
+					const responseFunctions = subscribeMutationNames[mutationName] || []
+					for (const responseFunction of responseFunctions) {
+						responseFunction(store)
+					}
+				}
+			})
 
-				store.subscribeAction((actionName, state) => {
-					const responseFunction = subscribeActionNames[actionName]
-					if (responseFunction && asyncGuard(store.state, store.getters)) responseFunction(store)
-				})
-			}
-			else {
-				store.subscribe((mutationName, state) => {
-					const responseFunction = subscribeMutationNames[mutationName]
-					if (responseFunction) responseFunction(store)
-				})
-
-				store.subscribeAction((actionName, state) => {
-					const responseFunction = subscribeActionNames[actionName]
-					if (responseFunction) responseFunction(store)
-				})
-			}
+			store.subscribeAction(({ type: actionName }, state) => {
+				if (!asyncGuard || asyncGuard(store.state, store.getters)) {
+					const responseFunctions = subscribeActionNames[actionName] || []
+					for (const responseFunction of responseFunctions) {
+						responseFunction(store)
+					}
+				}
+			})
 		}
 
 		plugins.push(asyncPlugin)

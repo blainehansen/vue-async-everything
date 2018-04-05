@@ -76,6 +76,7 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 			.then((result) => {
 				// we'd probably also have to branch based on whether we're resetting or not
 
+				// console.log('result', result)
 				assignValue(transformFunction(result, vuexContext), vuexContext)
 				return result
 			})
