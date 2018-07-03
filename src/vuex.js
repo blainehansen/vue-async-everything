@@ -86,7 +86,7 @@ function vuexResolver(opt, propName, mutations, actions, { metaSet, metaLoading,
 import { asyncPropertiesOptions } from './index.js'
 
 class AsyncVuex extends Vuex.Store {
-	constructor({ asyncState = {}, asyncGetters = {}, asyncGuard, asyncStateStartup, state = {}, getters = {}, mutations = {}, actions = {}, modules, plugins = [], ...options }) {
+	constructor({ asyncState = {}, asyncGetters = {}, asyncGuard, state = {}, getters = {}, mutations = {}, actions = {}, modules, plugins = [], ...options }) {
 
 		if (!asyncPropertiesOptions) throw Error("there aren't any global options")
 		const { meta, dataGlobalDefaults, computedGlobalDefaults } = asyncPropertiesOptions

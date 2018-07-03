@@ -63,10 +63,12 @@ export function resolverForGivenFunction(propName, { metaPending = null, metaLoa
 
 export function createResolverFunction(givenFunction, transformFunction, errorHandler, assignValue, assignLoading, assignError, assignPending = () => {}, emitReset = null) {
 
-	return (vuexContext) => {
+	return (vuexContext, ...args) => {
 		assignPending(false, vuexContext)
 		assignError(null, vuexContext)
-		const givenResult = vuexContext ? givenFunction(vuexContext.state, vuexContext.getters) : givenFunction()
+		const givenResult = vuexContext && vuexContext.state && vuexContext.getters
+			? givenFunction(vuexContext.state, vuexContext.getters)
+			: givenFunction(vuexContext, ...args)
 
 		if (!isNil(givenResult) && typeof givenResult.then === 'function') {
 			assignLoading(true, vuexContext)
@@ -76,7 +78,6 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 			.then((result) => {
 				// we'd probably also have to branch based on whether we're resetting or not
 
-				// console.log('result', result)
 				assignValue(transformFunction(result, vuexContext), vuexContext)
 				return result
 			})
@@ -97,8 +98,8 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 
 				return result
 			})
-
 		}
+
 		else {
 			assignValue(givenResult, vuexContext)
 		}
@@ -111,7 +112,7 @@ export function createResolverFunction(givenFunction, transformFunction, errorHa
 
 
 export function dataObjBuilder(properties = {}, { metaPending, metaLoading, metaError, metaDefault }, shouldDebounce = false) {
-	let dataObj = {}
+	const dataObj = {}
 	for (const [propName, prop] of Object.entries(properties)) {
 		// the property itself
 		const defaultValue = prop.default || null

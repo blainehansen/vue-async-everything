@@ -1,11 +1,7 @@
 import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
-import { globalDefaults, dataDefaults } from './defaults.js'
+import { dataDefaults } from './defaults.js'
 
-
-export default function AsyncDataMixinBuilder(options) {
-
-	const meta = globalDefaults(options).meta
-
+export default function AsyncDataMixinBuilder(dataGlobalDefaults, meta) {
 	const metaRefresh = metaFunctionBuilder('refresh', meta)
 	const metaLoading = metaFunctionBuilder('loading', meta)
 	const metaError = metaFunctionBuilder('error', meta)
@@ -15,15 +11,12 @@ export default function AsyncDataMixinBuilder(options) {
 
 	const metas = { metaLoading, metaError, metaDefault, metaReset }
 
-	const dataGlobalDefaults = dataDefaults(options)
-
 	return {
 
 	beforeCreate() {
 		let properties = this.$options.asyncData || {}
 
-		this.$options.methods = this.$options.methods || {}
-		let methods = this.$options.methods
+		let methods = this.$options.methods = this.$options.methods || {}
 
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = dataDefaults(prop, dataGlobalDefaults)
@@ -38,7 +31,6 @@ export default function AsyncDataMixinBuilder(options) {
 				methods[metaMore(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.more.get, opt.default, opt.transform, opt.error, opt.more.concat)
 			}
 		}
-
 	},
 
 	// for all non lazy properties, call refresh methods
@@ -52,7 +44,6 @@ export default function AsyncDataMixinBuilder(options) {
 				this[metaRefresh(propName)]()
 			}
 		}
-
 	},
 
 	data() {

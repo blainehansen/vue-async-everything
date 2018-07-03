@@ -15,7 +15,7 @@ const commonLocalDefaultObject = {
 
 const dataLocalDefaultObject = {
 	lazy: false,
-	debounce: false,
+	// debounce: false,
 }
 
 const computedLocalDefaultObject = {
@@ -24,6 +24,10 @@ const computedLocalDefaultObject = {
 		wait: 1000,
 		options: {}
 	}
+}
+
+const methodLocalDefaultObject = {
+	// debounce: false,
 }
 
 const moreDefaultObject = {
@@ -57,11 +61,16 @@ function commonChanges(options) {
 }
 
 
-export function dataDefaults(options, bigOptions = {}) {
-	// the "just pass a function" version
+function normalizeGetFunction(options) {
 	if (typeof options === 'function') {
 		options = { get: options }
 	}
+	return options
+}
+
+export function dataDefaults(options, bigOptions = {}) {
+	// the "just pass a function" version
+	options = normalizeGetFunction(options)
 
 	options = cloneDeep(options || {})
 
@@ -87,12 +96,26 @@ export function computedDefaults(options, bigOptions = {}) {
 	}
 	else if (options.debounce === null) options.debounce = false
 	else if (options.debounce === undefined) options.debounce = {}
-	else options.debounce = {wait: options.debounce.wait, options: pick(options.debounce, 'leading', 'trailing', 'maxWait')}
+	else options.debounce = { wait: options.debounce.wait, options: pick(options.debounce, 'leading', 'trailing', 'maxWait') }
 
 	// common
 	options = commonChanges(options)
 
 	return defaultsDeep(options, bigOptions, commonLocalDefaultObject, computedLocalDefaultObject)
+}
+
+export function methodDefaults(options, bigOptions = {}) {
+	options = normalizeGetFunction(options)
+
+	options = cloneDeep(options || {})
+
+	// no debouncing for asyncData
+	delete options.debounce
+
+	// common
+	options = commonChanges(options)
+
+	return defaultsDeep(options, bigOptions, commonLocalDefaultObject, methodLocalDefaultObject)
 }
 
 export function commonVuexChanges(options) {

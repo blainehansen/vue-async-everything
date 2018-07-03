@@ -1,12 +1,8 @@
 import { debounce } from 'lodash'
 import { resolverForGivenFunction, dataObjBuilder, metaFunctionBuilder } from './core.js'
-import { globalDefaults, computedDefaults } from './defaults.js'
+import { computedDefaults } from './defaults.js'
 
-export default function AsyncComputedMixinBuilder(options) {
-
-	const globalOptions = globalDefaults(options)
-	const meta = globalOptions.meta
-
+export default function AsyncComputedMixinBuilder(computedGlobalDefaults, meta) {
 	const metaCancel = metaFunctionBuilder('cancel', meta)
 	const metaNow = metaFunctionBuilder('now', meta)
 	const metaLoading = metaFunctionBuilder('loading', meta)
@@ -18,18 +14,14 @@ export default function AsyncComputedMixinBuilder(options) {
 	const metaMore = metaFunctionBuilder('more', meta)
 	const metaReset = metaFunctionBuilder('reset', meta)
 
-
 	const metas = { metaPending, metaLoading, metaError, metaDefault, metaReset }
-
-	const computedGlobalDefaults = computedDefaults(options)
 
 	return {
 
 	beforeCreate() {
 		let properties = this.$options.asyncComputed || {}
 
-		this.$options.methods = this.$options.methods
-		let methods = this.$options.methods || {}
+		let methods = this.$options.methods = this.$options.methods || {}
 
 		for (const [propName, prop] of Object.entries(properties)) {
 			const opt = computedDefaults(prop, computedGlobalDefaults)
@@ -66,9 +58,7 @@ export default function AsyncComputedMixinBuilder(options) {
 			if (opt.more) {
 				methods[metaMore(propName)] = resolverForGivenFunction.call(this, propName, metas, opt.more.get, opt.default, opt.transform, opt.error, opt.more.concat)
 			}
-
 		}
-
 	},
 
 	beforeMount() {

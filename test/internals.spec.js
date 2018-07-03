@@ -40,7 +40,6 @@ describe("defaults system", function() {
 			// 	transform: (result) => result.data,
 			// 	error: (e) => { console.error(e) },
 			// 	lazy: false,
-			// 	debounce: false,
 			// }
 
 			let dataDefaultsObj = dataDefaults()
@@ -56,7 +55,7 @@ describe("defaults system", function() {
 			// whatever we pass in should show up with other defaults
 			let sampleValidObj = { transform: (result) => result.data, error: (e) => e.stuff }
 			dataDefaultsObj = dataDefaults(sampleValidObj)
-			expect(dataDefaultsObj).to.deep.equal({ ...sampleValidObj, lazy: false, debounce: false })
+			expect(dataDefaultsObj).to.deep.equal({ ...sampleValidObj, lazy: false })
 
 			expect(dataDefaultsObj.transform({data: 'string'})).to.equal('string')
 			expect(dataDefaultsObj.error({stuff: 'things'})).to.equal('things')
@@ -70,12 +69,12 @@ describe("defaults system", function() {
 			expect(dataDefaultsObj.transform({result: 'result'})).to.deep.equal({result: 'result'})
 
 
-			// asyncData doesn't support debounce, so no matter what we do it should be false
-			dataDefaultsObj = dataDefaults({debounce: 500})
-			expect(dataDefaultsObj).property('debounce').to.be.false
+			// asyncData doesn't support debounce, so no matter what we do it should be undefined
+			dataDefaultsObj = dataDefaults({ debounce: 500 })
+			expect(dataDefaultsObj.debounce).equal(undefined)
 
-			dataDefaultsObj = dataDefaults({debounce: null})
-			expect(dataDefaultsObj).property('debounce').to.be.false
+			dataDefaultsObj = dataDefaults({ debounce: null })
+			expect(dataDefaultsObj.debounce).equal(undefined)
 
 
 			// if we just provide a function it should be moved to the get property
