@@ -102,16 +102,22 @@ const LazyEagerComponent = mixinAndExtend(undefined, { lazy: true }, { eager: tr
 const WithDefaultComponent = mixinAndExtend(undefined, { default: defaultString }, { default: defaultString })
 
 const ErrorHandlerComponent = mixinAndExtend({
+	// error(e) {
+	// 	this.otherErrorContainer = this.errorMessage
+	// }
+}, {
+	get() {
+		return delay(5).then(() => {throw new Error(this.member)})
+	},
 	error(e) {
-		this.otherErrorContainer = this.errorMessage
+		console.log(e)
 	}
 }, {
 	get() {
 		return delay(5).then(() => {throw new Error(this.member)})
-	}
-}, {
-	get() {
-		return delay(5).then(() => {throw new Error(this.member)})
+	},
+	error(e) {
+		console.log(e)
 	}
 })
 
@@ -425,8 +431,9 @@ describe("asyncData", function() {
 		// after load
 		await delay(16)
 
-		expect(c).property('delayMember$error').to.have.property('message').that.eql(oneString)
-		expect(c).property('otherErrorContainer').to.eql(errorMessage)
+		expect(c).property('delayMember$error').to.not.eql(null)
+		// expect(c).property('otherErrorContainer').to.eql(errorMessage)
+		expect(c).property('delayMember$loading').is.eql(false)
 	})
 
 	it("doesn't load with a value instead of a promise", function() {
@@ -684,13 +691,16 @@ describe("asyncComputed", function() {
 
 		c.$mount()
 		// after change
+		expect(c).property('upperMember$error').to.eql(null)
 		c.member = twoString
 		await Vue.nextTick()
 		// after debounce and load
 		await delay(12)
 
-		expect(c).property('delayMember$error').to.have.property('message').that.eql(twoString)
-		expect(c).property('otherErrorContainer').to.eql(errorMessage)
+		expect(c).property('upperMember$error').to.not.eql(null)
+		// expect(c).property('otherErrorContainer').to.eql(errorMessage)
+		expect(c).property('upperMember$pending').is.eql(false)
+		expect(c).property('upperMember$loading').is.eql(false)
 	})
 
 	it("doesn't load with a value instead of a promise", async function() {
