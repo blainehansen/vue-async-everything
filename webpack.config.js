@@ -6,16 +6,14 @@ module.exports = {
 		filename: 'index.js',
 		library: 'VueAsyncProperties',
 		libraryTarget: 'umd',
-		umdNamedDefine: true
+		umdNamedDefine: true,
 	},
 	module: {
-		loaders: [
-			{
-				test: /(\.js)$/,
-				loader: 'babel-loader',
-				exclude: /node_modules/
-			}
-		]
+		rules: [{
+			test: /(\.js)$/,
+			loader: 'babel-loader',
+			exclude: /node_modules/
+		}],
 	},
 	externals: {
 		"lodash": {
@@ -23,6 +21,6 @@ module.exports = {
 			commonjs2: "lodash",
 			amd: "lodash",
 			root: "_"
-		}
-	}
+		},
+	},
 }
