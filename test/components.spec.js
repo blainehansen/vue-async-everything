@@ -630,7 +630,7 @@ describe("asyncComputed", function() {
 		// after load
 		c.triggerCollectionMember = true
 		await Vue.nextTick()
-		await delay(12)
+		await delay(15)
 		expect(c).property('twiceCollection').to.eql([2, 4, 6])
 		expect(c).property('twiceCollection$loading').to.be.false
 		expect(c).property('twiceCollection$error').to.be.null
@@ -677,7 +677,7 @@ describe("asyncComputed", function() {
 		c.member = twoString
 		await Vue.nextTick()
 		// after debounce and load
-		await delay(12)
+		await delay(15)
 
 		expect(c).property('upperMember').to.eql(`${transformCompound} ${twoString.toUpperCase()}`)
 	})
