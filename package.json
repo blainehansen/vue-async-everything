@@ -47,7 +47,7 @@
 		"lodash": "^4.17.4"
 	},
 	"devDependencies": {
-		"@vue/test-utils": "^1.0.0-beta.29",
+		"@vue/test-utils": "^1.0.0-beta.31",
 		"babel-core": "^6.26.3",
 		"babel-loader": "^7.1.5",
 		"babel-plugin-add-module-exports": "^0.2.1",
